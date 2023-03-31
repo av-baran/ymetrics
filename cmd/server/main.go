@@ -58,7 +58,7 @@ func parsePath(path string) (Metric, error) {
 	var metric Metric
 	p := strings.Split(path, "/")
 	if len(p) != 5 {
-		return nil, errors.New("Bad request. Malformed URL")
+		return nil, errors.New("bad request: malformed URL")
 	}
 
 	rawType := p[2]
@@ -71,7 +71,7 @@ func parsePath(path string) (Metric, error) {
 	case "counter":
 		metric = &Counter{}
 	default:
-		return nil, errors.New("Bad request. Invalid metric type.")
+		return nil, errors.New("bad request: invalid metric type")
 	}
 	if err := metric.SetName(rawName); err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (g *Gauge) SetName(s string) error {
 func (g *Gauge) SetValue(s string) error {
 	value, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return errors.New("Bad request. Wrong value.")
+		return errors.New("bad request: wrong value")
 	}
 	g.Value = value
 	return nil
@@ -146,7 +146,7 @@ func (c *Counter) Update(s *MemStorage) {
 func (c *Counter) SetValue(s string) error {
 	value, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		return errors.New("Bad request. Wrong value.")
+		return errors.New("bad request: wrong value")
 	}
 	c.Value = value
 	return nil
