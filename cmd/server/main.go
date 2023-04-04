@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -48,17 +48,17 @@ func (s *MemStorage) updateMetricsHandler(w http.ResponseWriter, r *http.Request
 	metric, err := parseURL(r.URL.Path)
 	if err != nil {
 		log.Printf("Error while parsing url")
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Msg, err.Code)
 		return
 	}
 	if err := s.updateMetric(metric); err != nil {
 		log.Printf("Error while updating metric")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Msg, err.Code)
 		return
 	}
 }
 
-func (s *MemStorage) updateMetric(m *RawMetric) error {
+func (s *MemStorage) updateMetric(m *RawMetric) *httpError {
 	log.Printf("Updating storage with metric: %v, type: %v, value: %v", m.Name, m.mType, m.Value)
 	switch m.mType {
 	case "gauge":
@@ -66,24 +66,19 @@ func (s *MemStorage) updateMetric(m *RawMetric) error {
 	case "counter":
 		return s.updateCounter(m)
 	default:
-		log.Printf("Error. Invalid metric type")
-		return errors.New("bad request: invalid metric type")
+		return &httpError{"invalid metric type", http.StatusNotImplemented}
 	}
 }
 
-func (s *MemStorage) updateGauge(m *RawMetric) error {
+func (s *MemStorage) updateGauge(m *RawMetric) *httpError {
 	parsedValue, err := strconv.ParseFloat(m.Value, 64)
 	if err != nil {
-		return errors.New("bad request: wrong value")
+		return &httpError{"invalid value", http.StatusBadRequest}
 	}
 	log.Printf("Parsed value of %v is %v", m.Value, parsedValue)
 
-	log.Printf("Checking if metrics exists")
-	existingMetric, ok := s.metrics[m.Name]
-	if ok && existingMetric != m.mType {
-		return errors.New("bad request: metric with same name and different type already exists")
-	} else if !ok {
-		s.metrics[m.Name] = m.mType
+	if err := s.addMetric(m); err != nil {
+		return err
 	}
 
 	log.Printf("Storing new value")
@@ -92,23 +87,30 @@ func (s *MemStorage) updateGauge(m *RawMetric) error {
 	return nil
 }
 
-func (s *MemStorage) updateCounter(m *RawMetric) error {
+func (s *MemStorage) updateCounter(m *RawMetric) *httpError {
 	parsedValue, err := strconv.ParseInt(m.Value, 10, 64)
 	if err != nil {
-		return errors.New("bad request: wrong value")
+		return &httpError{"invalid value", http.StatusInternalServerError}
 	}
 	log.Printf("Parsed value of %v is %v", m.Value, parsedValue)
 
-	log.Printf("Checking if metrics exists")
-	existingMetric, ok := s.metrics[m.Name]
-	if ok && existingMetric != m.mType {
-		return errors.New("bad request: metric with same name and different type already exists")
-	} else if !ok {
-		s.metrics[m.Name] = m.mType
+	if err := s.addMetric(m); err != nil {
+		return err
 	}
 
 	s.counterStor[m.Name] += parsedValue
 	log.Printf("%v is stored in counter storage. Current value is %v", m.Name, s.counterStor[m.Name])
+	return nil
+}
+
+func (s *MemStorage) addMetric(m *RawMetric) *httpError {
+	log.Printf("Checking if metrics exists")
+	existingMetric, ok := s.metrics[m.Name]
+	if ok && existingMetric != m.mType {
+		return &httpError{"metric with same name and different type already exists", http.StatusBadRequest}
+	} else if !ok {
+		s.metrics[m.Name] = m.mType
+	}
 	return nil
 }
 
@@ -126,10 +128,10 @@ func (s *MemStorage) showAllHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // FIXME Как лучше вернуть три значения? Выносить ли в отдельную функцию? Привязывать ли функцию к структуре, она вроде связанна логически, но данные структуры не нужны?
-func parseURL(path string) (*RawMetric, error) {
+func parseURL(path string) (*RawMetric, *httpError) {
 	p := strings.Split(path, "/")
 	if len(p) != 5 {
-		return nil, errors.New("bad request: malformed URL")
+		return nil, &httpError{"bad request: malformed URL", http.StatusNotFound}
 	}
 	return &RawMetric{
 		mType: p[2],
@@ -142,4 +144,13 @@ type RawMetric struct {
 	mType string
 	Name  string
 	Value string
+}
+
+type httpError struct {
+	Msg  string
+	Code int
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("Code: %v, Message: %v", e.Code, e.Msg)
 }
