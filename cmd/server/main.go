@@ -48,12 +48,12 @@ func (s *MemStorage) updateMetricsHandler(w http.ResponseWriter, r *http.Request
 	metric, err := parseURL(r.URL.Path)
 	if err != nil {
 		log.Printf("Error while parsing url")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	if err := s.updateMetric(metric); err != nil {
 		log.Printf("Error while updating metric")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
