@@ -90,7 +90,7 @@ func (s *MemStorage) updateGauge(m *RawMetric) *httpError {
 func (s *MemStorage) updateCounter(m *RawMetric) *httpError {
 	parsedValue, err := strconv.ParseInt(m.Value, 10, 64)
 	if err != nil {
-		return &httpError{"invalid value", http.StatusInternalServerError}
+		return &httpError{"invalid value", http.StatusBadRequest}
 	}
 	log.Printf("Parsed value of %v is %v", m.Value, parsedValue)
 
