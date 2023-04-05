@@ -74,7 +74,7 @@ func main() {
 
 		for _, metric := range metrics {
 			if err := sendMetric(metric); err != nil {
-				log.Printf(err.Error())
+				log.Print(err.Error())
 			}
 		}
 	}
@@ -100,7 +100,7 @@ func sendMetric(m metric) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Print(err.Error())
 		return err
 	}
 	defer resp.Body.Close()
