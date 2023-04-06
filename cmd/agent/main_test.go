@@ -16,11 +16,9 @@ func Test_collectMetrics(t *testing.T) {
 		Type metric.Type
 	}
 	test := struct {
-		name      string
 		pollCount uint64
 		want      map[string]metric.Type
 	}{
-		name:      "Test that all necessary metrics have been received",
 		pollCount: 0,
 		want: map[string]metric.Type{
 			"Alloc":         metric.Gauge,
