@@ -45,22 +45,3 @@ func parseURL(path string) (*metric.Rawdata, *httperror.Error) {
 		Value: p[4],
 	}, nil
 }
-
-// func UpdateMetrics(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request with url: %v", r.URL.String())
-// 	if r.Method != http.MethodPost {
-// 		http.Error(w, "Only POST request is allowed.", http.StatusMethodNotAllowed)
-// 		return
-// 	}
-// 	metric, err := parseURL(r.URL.Path)
-// 	if err != nil {
-// 		log.Printf("Error while parsing url")
-// 		http.Error(w, err.Msg, err.Code)
-// 		return
-// 	}
-// 	if err := s.updateMetric(metric); err != nil {
-// 		log.Printf("Error while updating metric")
-// 		http.Error(w, err.Msg, err.Code)
-// 		return
-// 	}
-// }
