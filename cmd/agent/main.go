@@ -25,55 +25,56 @@ type inMetric struct {
 }
 
 func main() {
-	var m runtime.MemStats
-	var pollCount int64
-
+	var pollCount uint64
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
-
 	for range ticker.C {
-		runtime.ReadMemStats(&m)
-		pollCount++
-
-		inputMetrics := []inMetric{
-			{"Alloc", m.Alloc, metric.Gauge},
-			{"BuckHashSys", m.BuckHashSys, metric.Gauge},
-			{"Frees", m.Frees, metric.Gauge},
-			{"GCCPUFraction", m.GCCPUFraction, metric.Gauge},
-			{"GCSys", m.GCSys, metric.Gauge},
-			{"HeapAlloc", m.HeapAlloc, metric.Gauge},
-			{"HeapIdle", m.HeapIdle, metric.Gauge},
-			{"HeapInuse", m.HeapInuse, metric.Gauge},
-			{"HeapObjects", m.HeapObjects, metric.Gauge},
-			{"HeapReleased", m.HeapReleased, metric.Gauge},
-			{"HeapSys", m.HeapSys, metric.Gauge},
-			{"LastGC", m.LastGC, metric.Gauge},
-			{"Lookups", m.Lookups, metric.Gauge},
-			{"MCacheInuse", m.MCacheInuse, metric.Gauge},
-			{"MCacheSys", m.MCacheSys, metric.Gauge},
-			{"MSpanInuse", m.MSpanInuse, metric.Gauge},
-			{"MSpanSys", m.MSpanSys, metric.Gauge},
-			{"Mallocs", m.Mallocs, metric.Gauge},
-			{"NextGC", m.NextGC, metric.Gauge},
-			{"NumForcedGC", m.NumForcedGC, metric.Gauge},
-			{"NumGC", m.NumGC, metric.Gauge},
-			{"OtherSys", m.OtherSys, metric.Gauge},
-			{"PauseTotalNs", m.PauseTotalNs, metric.Gauge},
-			{"StackInuse", m.StackInuse, metric.Gauge},
-			{"StackSys", m.StackSys, metric.Gauge},
-			{"Sys", m.Sys, metric.Gauge},
-			{"TotalAlloc", m.TotalAlloc, metric.Gauge},
-			{"PollCount", pollCount, metric.Counter},
-			{"RandomValue", rand.Float64(), metric.Gauge},
-		}
-
+		inputMetrics := collectMetrics(pollCount)
 		for _, metric := range inputMetrics {
 			if err := sendMetric(metric); err != nil {
 				log.Print(err.Error())
 			}
 		}
+		pollCount++
+	}
+}
+
+func collectMetrics(pollCount uint64) []inMetric {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	return []inMetric{
+		{"Alloc", m.Alloc, metric.Gauge},
+		{"BuckHashSys", m.BuckHashSys, metric.Gauge},
+		{"Frees", m.Frees, metric.Gauge},
+		{"GCCPUFraction", m.GCCPUFraction, metric.Gauge},
+		{"GCSys", m.GCSys, metric.Gauge},
+		{"HeapAlloc", m.HeapAlloc, metric.Gauge},
+		{"HeapIdle", m.HeapIdle, metric.Gauge},
+		{"HeapInuse", m.HeapInuse, metric.Gauge},
+		{"HeapObjects", m.HeapObjects, metric.Gauge},
+		{"HeapReleased", m.HeapReleased, metric.Gauge},
+		{"HeapSys", m.HeapSys, metric.Gauge},
+		{"LastGC", m.LastGC, metric.Gauge},
+		{"Lookups", m.Lookups, metric.Gauge},
+		{"MCacheInuse", m.MCacheInuse, metric.Gauge},
+		{"MCacheSys", m.MCacheSys, metric.Gauge},
+		{"MSpanInuse", m.MSpanInuse, metric.Gauge},
+		{"MSpanSys", m.MSpanSys, metric.Gauge},
+		{"Mallocs", m.Mallocs, metric.Gauge},
+		{"NextGC", m.NextGC, metric.Gauge},
+		{"NumForcedGC", m.NumForcedGC, metric.Gauge},
+		{"NumGC", m.NumGC, metric.Gauge},
+		{"OtherSys", m.OtherSys, metric.Gauge},
+		{"PauseTotalNs", m.PauseTotalNs, metric.Gauge},
+		{"StackInuse", m.StackInuse, metric.Gauge},
+		{"StackSys", m.StackSys, metric.Gauge},
+		{"Sys", m.Sys, metric.Gauge},
+		{"TotalAlloc", m.TotalAlloc, metric.Gauge},
+		{"PollCount", pollCount, metric.Counter},
+		{"RandomValue", rand.Float64(), metric.Gauge},
 	}
 }
 
@@ -101,7 +102,7 @@ func sendMetric(m inMetric) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("http status code: %v", resp.StatusCode))
+		return fmt.Errorf("http status code: %v", resp.StatusCode)
 	}
 	return nil
 }
