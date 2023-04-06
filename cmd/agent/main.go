@@ -33,7 +33,7 @@ func main() {
 	for range ticker.C {
 		inputMetrics := collectMetrics(pollCount)
 		for _, metric := range inputMetrics {
-			if err := sendMetric(metric); err != nil {
+			if err := sendMetric(serverAddress, metric); err != nil {
 				log.Print(err.Error())
 			}
 		}
@@ -78,7 +78,7 @@ func collectMetrics(pollCount uint64) []inMetric {
 	}
 }
 
-func sendMetric(m inMetric) error {
+func sendMetric(srv string, m inMetric) error {
 	switch m.Type {
 	case metric.Gauge, metric.Counter:
 		m.Value = fmt.Sprintf("%v", m.Value)
@@ -86,7 +86,7 @@ func sendMetric(m inMetric) error {
 		return errors.New("type not implemented")
 	}
 
-	url := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, m.Type, m.Name, m.Value)
+	url := fmt.Sprintf("%s/update/%s/%s/%v", srv, m.Type, m.Name, m.Value)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
