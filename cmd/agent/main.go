@@ -8,23 +8,20 @@ import (
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/av-baran/ymetrics/internal/entities/metric"
 )
 
-type MetricKind string
-
 const (
-	Gauge   = MetricKind("gauge")
-	Counter = MetricKind("counter")
-
 	pollInterval   = 2 * time.Second
 	reportInterval = 10 * time.Second
 	serverAddress  = "http://localhost:8080"
 )
 
-type metric struct {
-	name  string
-	value interface{}
-	kind  MetricKind
+type inMetric struct {
+	Name  string
+	Value interface{}
+	Type  metric.Type
 }
 
 func main() {
@@ -40,39 +37,39 @@ func main() {
 		runtime.ReadMemStats(&m)
 		pollCount++
 
-		metrics := []metric{
-			{"Alloc", m.Alloc, Gauge},
-			{"BuckHashSys", m.BuckHashSys, Gauge},
-			{"Frees", m.Frees, Gauge},
-			{"GCCPUFraction", m.GCCPUFraction, Gauge},
-			{"GCSys", m.GCSys, Gauge},
-			{"HeapAlloc", m.HeapAlloc, Gauge},
-			{"HeapIdle", m.HeapIdle, Gauge},
-			{"HeapInuse", m.HeapInuse, Gauge},
-			{"HeapObjects", m.HeapObjects, Gauge},
-			{"HeapReleased", m.HeapReleased, Gauge},
-			{"HeapSys", m.HeapSys, Gauge},
-			{"LastGC", m.LastGC, Gauge},
-			{"Lookups", m.Lookups, Gauge},
-			{"MCacheInuse", m.MCacheInuse, Gauge},
-			{"MCacheSys", m.MCacheSys, Gauge},
-			{"MSpanInuse", m.MSpanInuse, Gauge},
-			{"MSpanSys", m.MSpanSys, Gauge},
-			{"Mallocs", m.Mallocs, Gauge},
-			{"NextGC", m.NextGC, Gauge},
-			{"NumForcedGC", m.NumForcedGC, Gauge},
-			{"NumGC", m.NumGC, Gauge},
-			{"OtherSys", m.OtherSys, Gauge},
-			{"PauseTotalNs", m.PauseTotalNs, Gauge},
-			{"StackInuse", m.StackInuse, Gauge},
-			{"StackSys", m.StackSys, Gauge},
-			{"Sys", m.Sys, Gauge},
-			{"TotalAlloc", m.TotalAlloc, Gauge},
-			{"PollCount", pollCount, Counter},
-			{"RandomValue", rand.Float64(), Gauge},
+		inputMetrics := []inMetric{
+			{"Alloc", m.Alloc, metric.Gauge},
+			{"BuckHashSys", m.BuckHashSys, metric.Gauge},
+			{"Frees", m.Frees, metric.Gauge},
+			{"GCCPUFraction", m.GCCPUFraction, metric.Gauge},
+			{"GCSys", m.GCSys, metric.Gauge},
+			{"HeapAlloc", m.HeapAlloc, metric.Gauge},
+			{"HeapIdle", m.HeapIdle, metric.Gauge},
+			{"HeapInuse", m.HeapInuse, metric.Gauge},
+			{"HeapObjects", m.HeapObjects, metric.Gauge},
+			{"HeapReleased", m.HeapReleased, metric.Gauge},
+			{"HeapSys", m.HeapSys, metric.Gauge},
+			{"LastGC", m.LastGC, metric.Gauge},
+			{"Lookups", m.Lookups, metric.Gauge},
+			{"MCacheInuse", m.MCacheInuse, metric.Gauge},
+			{"MCacheSys", m.MCacheSys, metric.Gauge},
+			{"MSpanInuse", m.MSpanInuse, metric.Gauge},
+			{"MSpanSys", m.MSpanSys, metric.Gauge},
+			{"Mallocs", m.Mallocs, metric.Gauge},
+			{"NextGC", m.NextGC, metric.Gauge},
+			{"NumForcedGC", m.NumForcedGC, metric.Gauge},
+			{"NumGC", m.NumGC, metric.Gauge},
+			{"OtherSys", m.OtherSys, metric.Gauge},
+			{"PauseTotalNs", m.PauseTotalNs, metric.Gauge},
+			{"StackInuse", m.StackInuse, metric.Gauge},
+			{"StackSys", m.StackSys, metric.Gauge},
+			{"Sys", m.Sys, metric.Gauge},
+			{"TotalAlloc", m.TotalAlloc, metric.Gauge},
+			{"PollCount", pollCount, metric.Counter},
+			{"RandomValue", rand.Float64(), metric.Gauge},
 		}
 
-		for _, metric := range metrics {
+		for _, metric := range inputMetrics {
 			if err := sendMetric(metric); err != nil {
 				log.Print(err.Error())
 			}
@@ -80,17 +77,15 @@ func main() {
 	}
 }
 
-func sendMetric(m metric) error {
-	switch m.kind {
-	case Gauge:
-		m.value = fmt.Sprintf("%v", m.value)
-	case Counter:
-		m.value = fmt.Sprintf("%v", m.value)
+func sendMetric(m inMetric) error {
+	switch m.Type {
+	case metric.Gauge, metric.Counter:
+		m.Value = fmt.Sprintf("%v", m.Value)
 	default:
 		return errors.New("type not implemented")
 	}
 
-	url := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, m.kind, m.name, m.value)
+	url := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, m.Type, m.Name, m.Value)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
@@ -104,5 +99,9 @@ func sendMetric(m metric) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("http status code: %v", resp.StatusCode))
+	}
 	return nil
 }
