@@ -9,8 +9,6 @@ import (
 	"github.com/av-baran/ymetrics/internal/httperror"
 )
 
-// FIXME Может метрики вынести в отдельный модуль чтобы не дублировать в агенте?
-
 type MemStorage struct {
 	// FIXME Нужен ли дополнительный словарь чтобы хранить название и тип существующих метрик? Или просто искать имя в обеих мапах?
 	metrics     map[string]metric.Type
