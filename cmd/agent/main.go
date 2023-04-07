@@ -6,7 +6,10 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/entities/metric"
@@ -28,17 +31,31 @@ func main() {
 	var pollCount uint64
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	ticker := time.NewTicker(pollInterval)
-	defer ticker.Stop()
-	for range ticker.C {
+	pollTicker := time.NewTicker(pollInterval)
+	defer pollTicker.Stop()
+	reportTicker := time.NewTicker(reportInterval)
+	defer reportTicker.Stop()
+
+	go func() {
 		inputMetrics := collectMetrics(pollCount)
-		for _, metric := range inputMetrics {
-			if err := sendMetric(serverAddress, metric); err != nil {
-				log.Print(err.Error())
+		for {
+			select {
+			case <-pollTicker.C:
+				pollCount++
+				inputMetrics = collectMetrics(pollCount)
+			case <-reportTicker.C:
+				for _, metric := range inputMetrics {
+					if err := sendMetric(serverAddress, metric); err != nil {
+						log.Print(err.Error())
+					}
+				}
+				pollCount = 0
 			}
 		}
-		pollCount++
-	}
+	}()
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
 }
 
 func collectMetrics(pollCount uint64) []inMetric {
