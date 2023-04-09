@@ -1,35 +1,30 @@
 package handlers
 
 import (
-	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/av-baran/ymetrics/internal/entities/metric"
 	"github.com/av-baran/ymetrics/internal/interrors"
+	"github.com/go-chi/chi/v5"
 )
 
-type storage interface {
+type Storage interface {
 	UpdateMetric(*metric.Rawdata) error
 }
 
-func UpdateMetricHandler(s storage) http.HandlerFunc {
+func UpdateMetricHandler(s Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received request with url: %v", r.URL.String())
-		if r.Method != http.MethodPost {
-			log.Printf("Method %v is not allowed.", r.Method)
-			http.Error(w, "Only POST request is allowed.", http.StatusMethodNotAllowed)
-			return
+		w.Header().Set("Content-Type", "text/plain")
+
+		var m = &metric.Rawdata{
+			Name:  chi.URLParam(r, "name"),
+			Type:  metric.Type(chi.URLParam(r, "type")),
+			Value: chi.URLParam(r, "value"),
 		}
-		metric, err := parseURL(r.URL.Path)
-		if err != nil {
-			log.Printf("Error while parsing url")
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		if err := s.UpdateMetric(metric); err != nil {
-			log.Printf("Error while updating metric")
+
+		if err := s.UpdateMetric(m); err != nil {
+			log.Printf(`Error "%v" while updating metric`, err.Error())
 			var statusCode int
 			switch err.Error() {
 			case interrors.ErrInvalidMetricType:
@@ -45,16 +40,4 @@ func UpdateMetricHandler(s storage) http.HandlerFunc {
 			return
 		}
 	}
-}
-
-func parseURL(path string) (*metric.Rawdata, error) {
-	p := strings.Split(path, "/")
-	if len(p) != 5 {
-		return nil, errors.New(interrors.ErrBadURL)
-	}
-	return &metric.Rawdata{
-		Type:  metric.Type(p[2]),
-		Name:  p[3],
-		Value: p[4],
-	}, nil
 }

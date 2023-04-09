@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/entities/metric"
+	"github.com/go-resty/resty/v2"
 )
 
 const (
@@ -104,22 +105,21 @@ func sendMetric(srv string, m inMetric) error {
 		return errors.New("type not implemented")
 	}
 
-	url := fmt.Sprintf("%s/update/%s/%s/%v", srv, m.Type, m.Name, m.Value)
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Content-Type", "text/plain").
+		SetPathParams(map[string]string{
+			"name":  m.Name,
+			"type":  string(m.Type),
+			"value": m.Value.(string),
+		}).
+		Post(srv + "/update/{type}/{name}/{value}")
 
-	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "text/plain")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("http status code: %v", resp.StatusCode)
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("http status code: %v", resp.StatusCode())
 	}
 	return nil
 }
