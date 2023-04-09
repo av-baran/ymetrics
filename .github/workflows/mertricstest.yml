@@ -18,7 +18,7 @@ jobs:
 
   metricstest:
     runs-on: ubuntu-latest
-    container: golang:1.19
+    container: golang:1.20
     needs: branchtest
 
     services:
@@ -62,7 +62,6 @@ jobs:
           cd cmd/server
           go build -buildvcs=false -o server
 
-
       - name: "Code increment #1"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -84,12 +83,10 @@ jobs:
           metricstest -test.v -test.run=^TestIteration1$ \
             -binary-path=cmd/server/server
 
-
       - name: Build agent binary
         run: |
           cd cmd/agent
           go build -buildvcs=false  -o agent
-
 
       - name: "Code increment #2"
         if: |
@@ -133,7 +130,6 @@ jobs:
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
 
-
       - name: "Code increment #4"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -153,12 +149,10 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration4$ \
-            -file-storage-path=$TEMP_FILE \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
-
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #5"
         if: |
@@ -178,11 +172,10 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration5$ \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
-
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #6"
         if: |
@@ -201,11 +194,10 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration6$ \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
-
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #7"
         if: |
@@ -223,11 +215,10 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration7$ \
-            -source-path=. \
-            -server-port=$SERVER_PORT
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #8"
         if: |
@@ -244,11 +235,10 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration8$ \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
-
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #9"
         if: |
@@ -264,13 +254,13 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration9$ \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -source-path=. \
             -server-port=$SERVER_PORT \
             -key="${TEMP_FILE}" \
             -file-storage-path=$TEMP_FILE \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
-
 
       - name: "Code increment #10"
         if: |
@@ -292,7 +282,6 @@ jobs:
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
 
-
       - name: "Code increment #11"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -312,7 +301,6 @@ jobs:
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
 
-
       - name: "Code increment #12"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -331,7 +319,6 @@ jobs:
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
 
-
       - name: "Code increment #13"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -349,7 +336,6 @@ jobs:
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
 
-
       - name: "Code increment #14"
         if: |
           github.ref == 'refs/heads/main' ||
@@ -365,7 +351,6 @@ jobs:
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
-
 
       - name: "Code increment #14 (race detection)"
         if: |
