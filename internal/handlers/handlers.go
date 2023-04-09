@@ -11,6 +11,7 @@ import (
 
 type Storage interface {
 	UpdateMetric(*metric.Rawdata) error
+	GetMetric(*metric.Rawdata) (string, error)
 }
 
 func UpdateMetricHandler(s Storage) http.HandlerFunc {
@@ -39,5 +40,22 @@ func UpdateMetricHandler(s Storage) http.HandlerFunc {
 			http.Error(w, err.Error(), statusCode)
 			return
 		}
+	}
+}
+
+func GetMetricHandler(s Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+
+		var m = &metric.Rawdata{
+			Name: chi.URLParam(r, "name"),
+			Type: metric.Type(chi.URLParam(r, "type")),
+		}
+
+		mValue, err := s.GetMetric(m)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
+		w.Write([]byte(mValue))
 	}
 }

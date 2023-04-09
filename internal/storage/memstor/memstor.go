@@ -75,3 +75,41 @@ func (s *MemStorage) addMetric(m *metric.Rawdata) error {
 	}
 	return nil
 }
+
+func (s *MemStorage) GetMetric(m *metric.Rawdata) (string, error) {
+	log.Printf("Getting metric: %v, type: %v", m.Name, m.Type)
+	switch m.Type {
+	case metric.Gauge:
+		val, err := s.GetGauge(m)
+		if err != nil {
+			return "", err
+		}
+		sVal := strconv.FormatFloat(val, 'f', -1, 64)
+		return sVal, nil
+	case metric.Counter:
+		val, err := s.GetCounter(m)
+		if err != nil {
+			return "", err
+		}
+		sVal := strconv.FormatInt(val, 10)
+		return sVal, nil
+	default:
+		return "", errors.New(interrors.ErrInvalidMetricType)
+	}
+}
+
+func (s *MemStorage) GetGauge(m *metric.Rawdata) (float64, error) {
+	v, ok := s.gaugeStor[m.Name]
+	if !ok {
+		return 0, errors.New(interrors.ErrMetricNotFound)
+	}
+	return v, nil
+}
+
+func (s *MemStorage) GetCounter(m *metric.Rawdata) (int64, error) {
+	v, ok := s.counterStor[m.Name]
+	if !ok {
+		return 0, errors.New(interrors.ErrMetricNotFound)
+	}
+	return v, nil
+}

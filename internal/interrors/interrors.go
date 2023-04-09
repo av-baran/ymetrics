@@ -7,6 +7,7 @@ const (
 	ErrInvalidMetricValue  = "invalid value"
 	ErrMetricAlreadyExists = "metric with same name and different type already exists"
 	ErrBadURL              = "bad request"
+	ErrMetricNotFound      = "metric not found"
 )
 
 func New(msg string, code int) *Error {
