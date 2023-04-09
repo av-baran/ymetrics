@@ -91,6 +91,7 @@ func TestRouter(t *testing.T) {
 	}
 	for _, v := range tests {
 		resp, get := testRequest(t, ts, v.method, v.request)
+		defer resp.Body.Close()
 		assert.Equal(t, v.expectedCode, resp.StatusCode)
 		assert.Equal(t, v.expectedBody, get)
 	}
