@@ -1,12 +1,12 @@
 package mem
 
 import (
+	"errors"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/av-baran/ymetrics/internal/entities/metric"
-	"github.com/av-baran/ymetrics/internal/httperror"
+	"github.com/av-baran/ymetrics/internal/interrors"
 )
 
 type MemStorage struct {
@@ -24,7 +24,7 @@ func New() *MemStorage {
 	}
 }
 
-func (s *MemStorage) UpdateMetric(m *metric.Rawdata) *httperror.Error {
+func (s *MemStorage) UpdateMetric(m *metric.Rawdata) error {
 	log.Printf("Updating storage with metric: %v, type: %v, value: %v", m.Name, m.Type, m.Value)
 	switch m.Type {
 	case metric.Gauge:
@@ -32,31 +32,29 @@ func (s *MemStorage) UpdateMetric(m *metric.Rawdata) *httperror.Error {
 	case metric.Counter:
 		return s.updateCounter(m)
 	default:
-		return httperror.New("invalid metric type", http.StatusNotImplemented)
+		return errors.New(interrors.ErrInvalidMetricType)
 	}
 }
 
-func (s *MemStorage) updateGauge(m *metric.Rawdata) *httperror.Error {
+func (s *MemStorage) updateGauge(m *metric.Rawdata) error {
 	parsedValue, err := strconv.ParseFloat(m.Value, 64)
 	if err != nil {
-		return httperror.New("invalid value", http.StatusBadRequest)
+		return errors.New(interrors.ErrInvalidMetricValue)
 	}
-	log.Printf("Parsed value of %v is %v", m.Value, parsedValue)
 
 	if err := s.addMetric(m); err != nil {
 		return err
 	}
 
-	log.Printf("Storing new value")
 	s.gaugeStor[m.Name] = parsedValue
 	log.Printf("%v is stored in gauge storage. Current values is %v", m.Name, s.gaugeStor[m.Name])
 	return nil
 }
 
-func (s *MemStorage) updateCounter(m *metric.Rawdata) *httperror.Error {
+func (s *MemStorage) updateCounter(m *metric.Rawdata) error {
 	parsedValue, err := strconv.ParseInt(m.Value, 10, 64)
 	if err != nil {
-		return httperror.New("invalid value", http.StatusBadRequest)
+		return errors.New(interrors.ErrInvalidMetricValue)
 	}
 	log.Printf("Parsed value of %v is %v", m.Value, parsedValue)
 
@@ -69,11 +67,10 @@ func (s *MemStorage) updateCounter(m *metric.Rawdata) *httperror.Error {
 	return nil
 }
 
-func (s *MemStorage) addMetric(m *metric.Rawdata) *httperror.Error {
-	log.Printf("Checking if metrics exists")
+func (s *MemStorage) addMetric(m *metric.Rawdata) error {
 	existingMetric, ok := s.metrics[m.Name]
 	if ok && existingMetric != m.Type {
-		return httperror.New("metric with same name and different type already exists", http.StatusBadRequest)
+		return errors.New(interrors.ErrMetricAlreadyExists)
 	} else if !ok {
 		s.metrics[m.Name] = m.Type
 	}

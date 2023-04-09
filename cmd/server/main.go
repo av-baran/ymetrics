@@ -17,6 +17,6 @@ func run() error {
 	repo := storage.New()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", handlers.UpdateMetrics(repo))
+	mux.HandleFunc("/update/", handlers.UpdateMetricHandler(repo))
 	return http.ListenAndServe("0.0.0.0:8080", mux)
 }
