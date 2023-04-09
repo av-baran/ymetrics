@@ -46,7 +46,7 @@ func main() {
 			case <-reportTicker.C:
 				for _, metric := range inputMetrics {
 					if err := sendMetric(serverAddress, metric); err != nil {
-						log.Printf(err.Error())
+						log.Print(err.Error())
 					}
 				}
 				pollCount = 0
