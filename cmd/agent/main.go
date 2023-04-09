@@ -46,7 +46,7 @@ func main() {
 			case <-reportTicker.C:
 				for _, metric := range inputMetrics {
 					if err := sendMetric(serverAddress, metric); err != nil {
-						log.Print(err.Error())
+						log.Printf(err.Error())
 					}
 				}
 				pollCount = 0
@@ -114,7 +114,6 @@ func sendMetric(srv string, m inMetric) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Print(err.Error())
 		return err
 	}
 	defer resp.Body.Close()
