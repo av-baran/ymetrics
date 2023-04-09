@@ -20,6 +20,10 @@ func run() error {
 	router := chi.NewRouter()
 	router.Route("/update", func(r chi.Router) {
 		r.Post("/{type}/{name}/{value}", handlers.UpdateMetricHandler(repo))
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method not allowed"))
+		})
 	})
 	return http.ListenAndServe("0.0.0.0:8080", router)
 }
