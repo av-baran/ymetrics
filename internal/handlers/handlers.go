@@ -50,7 +50,7 @@ func UpdateMetricHandler(s storage) http.HandlerFunc {
 func parseURL(path string) (*metric.Rawdata, error) {
 	p := strings.Split(path, "/")
 	if len(p) != 5 {
-		return nil, errors.New(interrors.ErrBadUrl)
+		return nil, errors.New(interrors.ErrBadURL)
 	}
 	return &metric.Rawdata{
 		Type:  metric.Type(p[2]),

@@ -31,6 +31,8 @@ func TestUpdateMetricHandler(t *testing.T) {
 			h(w, request)
 
 			result := w.Result()
+			defer result.Body.Close()
+
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 		})
 	}
@@ -61,7 +63,7 @@ func Test_parseURL(t *testing.T) {
 			wantErr: true,
 			path:    "/update/unknown/type/name/1.0",
 			want:    nil,
-			want1:   errors.New(interrors.ErrBadUrl),
+			want1:   errors.New(interrors.ErrBadURL),
 		},
 	}
 	for _, tt := range tests {
