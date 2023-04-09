@@ -14,18 +14,70 @@ import (
 )
 
 func TestUpdateMetricHandler(t *testing.T) {
-	type want struct {
-		statusCode int
-	}
 	tests := []struct {
-		name    string
-		request string
-		want    want
-	}{}
+		name         string
+		request      string
+		method       string
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "GET",
+			request:      "/update/gauge/name/1.0",
+			method:       http.MethodGet,
+			expectedCode: http.StatusMethodNotAllowed,
+			expectedBody: "",
+		},
+		{
+			name:         "PUT",
+			request:      "/update/gauge/name/1.0",
+			method:       http.MethodPut,
+			expectedCode: http.StatusMethodNotAllowed,
+			expectedBody: "",
+		},
+		{
+			name:         "DELETE",
+			request:      "/update/gauge/name/1.0",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusMethodNotAllowed,
+			expectedBody: "",
+		},
+		{
+			name:         "POST - Bad Type",
+			request:      "/update/unknowntype/name/1.0",
+			method:       http.MethodPost,
+			expectedCode: http.StatusNotImplemented,
+			expectedBody: "",
+		},
+		{
+			name:         "POST - Post Bad value",
+			request:      "/update/gauge/name/fuuuu",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "",
+		},
+		{
+			name:         "POST - OK",
+			request:      "/update/gauge/name/1.0",
+			method:       http.MethodPost,
+			expectedCode: http.StatusOK,
+			expectedBody: "",
+		},
+		{
+			//FIXME depends on previous test value. Should be same metric name
+			name:         "POST - already exists",
+			request:      "/update/counter/name/1.0",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "",
+		},
+	}
+
 	s := memstorage.New()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
+			request := httptest.NewRequest(tt.method, tt.request, nil)
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(UpdateMetricHandler(s))
 			h(w, request)
@@ -33,12 +85,12 @@ func TestUpdateMetricHandler(t *testing.T) {
 			result := w.Result()
 			defer result.Body.Close()
 
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.expectedCode, result.StatusCode)
 		})
 	}
+
 }
 
-//
 func Test_parseURL(t *testing.T) {
 	tests := []struct {
 		name    string
