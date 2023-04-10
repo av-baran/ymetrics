@@ -16,12 +16,6 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-	serverAddress  = "http://localhost:8080"
-)
-
 type inMetric struct {
 	Name  string
 	Value interface{}
@@ -31,6 +25,13 @@ type inMetric struct {
 func main() {
 	var pollCount uint64
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	parseFlags()
+	pollInterval := time.Duration(flagPollInterval) * time.Second
+	reportInterval := time.Duration(flagReportInterval) * time.Second
+	serverAddress := "http://" + flagServerAddress
+
+	log.Printf("Starting agent with poll interval: %v, report interval: %v, target server: %v", flagPollInterval, flagReportInterval, flagServerAddress)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()

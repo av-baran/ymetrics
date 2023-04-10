@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/router"
@@ -8,6 +9,8 @@ import (
 )
 
 func main() {
+	parseFlags()
+
 	if err := run(); err != nil {
 		panic(err)
 	}
@@ -15,5 +18,6 @@ func main() {
 
 func run() error {
 	repo := memstor.New()
-	return http.ListenAndServe("0.0.0.0:8080", router.New(repo))
+	log.Printf("Starting server on %v", flagServerAddress)
+	return http.ListenAndServe(flagServerAddress, router.New(repo))
 }
