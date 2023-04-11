@@ -20,6 +20,10 @@ func parseFlags() {
 	flagSet.IntVar(&flagReportInterval, "r", 10, "report interval in seconds")
 	flagSet.IntVar(&flagPollInterval, "p", 2, "poll interval in seconds")
 
+	if err := flagSet.Parse(os.Args[1:]); err != nil {
+		log.Print(err.Error())
+	}
+
 	if envServerAddress := os.Getenv("ADDRESS"); envServerAddress != "" {
 		flagServerAddress = envServerAddress
 		log.Printf("Set ADDRESS=%v from ENV", envServerAddress)
@@ -38,6 +42,4 @@ func parseFlags() {
 		}
 		log.Printf("Invalid value in ENV variable POLL_INTERVAL=%v", envPollInterval)
 	}
-
-	flagSet.Parse(os.Args)
 }
