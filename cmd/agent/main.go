@@ -22,9 +22,10 @@ type inMetric struct {
 	Type  metric.Type
 }
 
+var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+
 func main() {
 	var pollCount uint64
-	rand.Seed(time.Now().UTC().UnixNano())
 
 	parseFlags()
 	pollInterval := time.Duration(flagPollInterval) * time.Second
@@ -63,6 +64,7 @@ func main() {
 
 func collectMetrics(pollCount uint64) []inMetric {
 	var m runtime.MemStats
+
 	runtime.ReadMemStats(&m)
 
 	return []inMetric{
@@ -94,7 +96,7 @@ func collectMetrics(pollCount uint64) []inMetric {
 		{"Sys", m.Sys, metric.Gauge},
 		{"TotalAlloc", m.TotalAlloc, metric.Gauge},
 		{"PollCount", pollCount, metric.Counter},
-		{"RandomValue", rand.Float64(), metric.Gauge},
+		{"RandomValue", randSrc.Float64(), metric.Gauge},
 	}
 }
 

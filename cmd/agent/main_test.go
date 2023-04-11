@@ -11,10 +11,6 @@ import (
 )
 
 func Test_collectMetrics(t *testing.T) {
-	type testMetric struct {
-		Name string
-		Type metric.Type
-	}
 	test := struct {
 		pollCount uint64
 		want      map[string]metric.Type
