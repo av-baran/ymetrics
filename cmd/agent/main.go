@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/av-baran/ymetrics/internal/entities/metric"
+	"github.com/av-baran/ymetrics/internal/models/metric"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -68,41 +68,41 @@ func collectMetrics(pollCount uint64) []inMetric {
 	runtime.ReadMemStats(&m)
 
 	return []inMetric{
-		{"Alloc", m.Alloc, metric.Gauge},
-		{"BuckHashSys", m.BuckHashSys, metric.Gauge},
-		{"Frees", m.Frees, metric.Gauge},
-		{"GCCPUFraction", m.GCCPUFraction, metric.Gauge},
-		{"GCSys", m.GCSys, metric.Gauge},
-		{"HeapAlloc", m.HeapAlloc, metric.Gauge},
-		{"HeapIdle", m.HeapIdle, metric.Gauge},
-		{"HeapInuse", m.HeapInuse, metric.Gauge},
-		{"HeapObjects", m.HeapObjects, metric.Gauge},
-		{"HeapReleased", m.HeapReleased, metric.Gauge},
-		{"HeapSys", m.HeapSys, metric.Gauge},
-		{"LastGC", m.LastGC, metric.Gauge},
-		{"Lookups", m.Lookups, metric.Gauge},
-		{"MCacheInuse", m.MCacheInuse, metric.Gauge},
-		{"MCacheSys", m.MCacheSys, metric.Gauge},
-		{"MSpanInuse", m.MSpanInuse, metric.Gauge},
-		{"MSpanSys", m.MSpanSys, metric.Gauge},
-		{"Mallocs", m.Mallocs, metric.Gauge},
-		{"NextGC", m.NextGC, metric.Gauge},
-		{"NumForcedGC", m.NumForcedGC, metric.Gauge},
-		{"NumGC", m.NumGC, metric.Gauge},
-		{"OtherSys", m.OtherSys, metric.Gauge},
-		{"PauseTotalNs", m.PauseTotalNs, metric.Gauge},
-		{"StackInuse", m.StackInuse, metric.Gauge},
-		{"StackSys", m.StackSys, metric.Gauge},
-		{"Sys", m.Sys, metric.Gauge},
-		{"TotalAlloc", m.TotalAlloc, metric.Gauge},
-		{"PollCount", pollCount, metric.Counter},
-		{"RandomValue", randSrc.Float64(), metric.Gauge},
+		{"Alloc", m.Alloc, metric.GaugeType},
+		{"BuckHashSys", m.BuckHashSys, metric.GaugeType},
+		{"Frees", m.Frees, metric.GaugeType},
+		{"GCCPUFraction", m.GCCPUFraction, metric.GaugeType},
+		{"GCSys", m.GCSys, metric.GaugeType},
+		{"HeapAlloc", m.HeapAlloc, metric.GaugeType},
+		{"HeapIdle", m.HeapIdle, metric.GaugeType},
+		{"HeapInuse", m.HeapInuse, metric.GaugeType},
+		{"HeapObjects", m.HeapObjects, metric.GaugeType},
+		{"HeapReleased", m.HeapReleased, metric.GaugeType},
+		{"HeapSys", m.HeapSys, metric.GaugeType},
+		{"LastGC", m.LastGC, metric.GaugeType},
+		{"Lookups", m.Lookups, metric.GaugeType},
+		{"MCacheInuse", m.MCacheInuse, metric.GaugeType},
+		{"MCacheSys", m.MCacheSys, metric.GaugeType},
+		{"MSpanInuse", m.MSpanInuse, metric.GaugeType},
+		{"MSpanSys", m.MSpanSys, metric.GaugeType},
+		{"Mallocs", m.Mallocs, metric.GaugeType},
+		{"NextGC", m.NextGC, metric.GaugeType},
+		{"NumForcedGC", m.NumForcedGC, metric.GaugeType},
+		{"NumGC", m.NumGC, metric.GaugeType},
+		{"OtherSys", m.OtherSys, metric.GaugeType},
+		{"PauseTotalNs", m.PauseTotalNs, metric.GaugeType},
+		{"StackInuse", m.StackInuse, metric.GaugeType},
+		{"StackSys", m.StackSys, metric.GaugeType},
+		{"Sys", m.Sys, metric.GaugeType},
+		{"TotalAlloc", m.TotalAlloc, metric.GaugeType},
+		{"PollCount", pollCount, metric.CounterType},
+		{"RandomValue", randSrc.Float64(), metric.GaugeType},
 	}
 }
 
 func sendMetric(srv string, m inMetric) error {
 	switch m.Type {
-	case metric.Gauge, metric.Counter:
+	case metric.GaugeType, metric.CounterType:
 		m.Value = fmt.Sprintf("%v", m.Value)
 	default:
 		return errors.New("type not implemented")

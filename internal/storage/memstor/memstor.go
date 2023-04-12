@@ -5,8 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/av-baran/ymetrics/internal/entities/metric"
 	"github.com/av-baran/ymetrics/internal/interrors"
+	"github.com/av-baran/ymetrics/internal/models/metric"
 )
 
 type MemStorage struct {
@@ -27,9 +27,9 @@ func New() *MemStorage {
 func (s *MemStorage) UpdateMetric(m *metric.Rawdata) error {
 	log.Printf("Updating storage with metric: %v, type: %v, value: %v", m.Name, m.Type, m.Value)
 	switch m.Type {
-	case metric.Gauge:
+	case metric.GaugeType:
 		return s.updateGauge(m)
-	case metric.Counter:
+	case metric.CounterType:
 		return s.updateCounter(m)
 	default:
 		return errors.New(interrors.ErrInvalidMetricType)
@@ -79,14 +79,14 @@ func (s *MemStorage) addMetric(m *metric.Rawdata) error {
 func (s *MemStorage) GetMetric(m *metric.Rawdata) (string, error) {
 	log.Printf("Getting metric: %v, type: %v", m.Name, m.Type)
 	switch m.Type {
-	case metric.Gauge:
+	case metric.GaugeType:
 		val, err := s.GetGauge(m)
 		if err != nil {
 			return "", err
 		}
 		sVal := strconv.FormatFloat(val, 'f', -1, 64)
 		return sVal, nil
-	case metric.Counter:
+	case metric.CounterType:
 		val, err := s.GetCounter(m)
 		if err != nil {
 			return "", err

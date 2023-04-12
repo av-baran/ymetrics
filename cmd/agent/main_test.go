@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/av-baran/ymetrics/internal/entities/metric"
+	"github.com/av-baran/ymetrics/internal/models/metric"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,35 +17,35 @@ func Test_collectMetrics(t *testing.T) {
 	}{
 		pollCount: 0,
 		want: map[string]metric.Type{
-			"Alloc":         metric.Gauge,
-			"BuckHashSys":   metric.Gauge,
-			"Frees":         metric.Gauge,
-			"GCCPUFraction": metric.Gauge,
-			"GCSys":         metric.Gauge,
-			"HeapAlloc":     metric.Gauge,
-			"HeapIdle":      metric.Gauge,
-			"HeapInuse":     metric.Gauge,
-			"HeapObjects":   metric.Gauge,
-			"HeapReleased":  metric.Gauge,
-			"HeapSys":       metric.Gauge,
-			"LastGC":        metric.Gauge,
-			"Lookups":       metric.Gauge,
-			"MCacheInuse":   metric.Gauge,
-			"MCacheSys":     metric.Gauge,
-			"MSpanInuse":    metric.Gauge,
-			"MSpanSys":      metric.Gauge,
-			"Mallocs":       metric.Gauge,
-			"NextGC":        metric.Gauge,
-			"NumForcedGC":   metric.Gauge,
-			"NumGC":         metric.Gauge,
-			"OtherSys":      metric.Gauge,
-			"PauseTotalNs":  metric.Gauge,
-			"StackInuse":    metric.Gauge,
-			"StackSys":      metric.Gauge,
-			"Sys":           metric.Gauge,
-			"TotalAlloc":    metric.Gauge,
-			"PollCount":     metric.Counter,
-			"RandomValue":   metric.Gauge,
+			"Alloc":         metric.GaugeType,
+			"BuckHashSys":   metric.GaugeType,
+			"Frees":         metric.GaugeType,
+			"GCCPUFraction": metric.GaugeType,
+			"GCSys":         metric.GaugeType,
+			"HeapAlloc":     metric.GaugeType,
+			"HeapIdle":      metric.GaugeType,
+			"HeapInuse":     metric.GaugeType,
+			"HeapObjects":   metric.GaugeType,
+			"HeapReleased":  metric.GaugeType,
+			"HeapSys":       metric.GaugeType,
+			"LastGC":        metric.GaugeType,
+			"Lookups":       metric.GaugeType,
+			"MCacheInuse":   metric.GaugeType,
+			"MCacheSys":     metric.GaugeType,
+			"MSpanInuse":    metric.GaugeType,
+			"MSpanSys":      metric.GaugeType,
+			"Mallocs":       metric.GaugeType,
+			"NextGC":        metric.GaugeType,
+			"NumForcedGC":   metric.GaugeType,
+			"NumGC":         metric.GaugeType,
+			"OtherSys":      metric.GaugeType,
+			"PauseTotalNs":  metric.GaugeType,
+			"StackInuse":    metric.GaugeType,
+			"StackSys":      metric.GaugeType,
+			"Sys":           metric.GaugeType,
+			"TotalAlloc":    metric.GaugeType,
+			"PollCount":     metric.CounterType,
+			"RandomValue":   metric.GaugeType,
 		},
 	}
 	wantMetricNames := make([]string, len(test.want))
@@ -85,7 +85,7 @@ func Test_sendMetric(t *testing.T) {
 			inMetric: inMetric{
 				Name:  "unknownMetric",
 				Value: 22,
-				Type:  metric.Gauge,
+				Type:  metric.GaugeType,
 			},
 			wantErr: false,
 		},

@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/av-baran/ymetrics/internal/entities/metric"
 	"github.com/av-baran/ymetrics/internal/interrors"
+	"github.com/av-baran/ymetrics/internal/models/metric"
 	"github.com/go-chi/chi/v5"
 )
 
