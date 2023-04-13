@@ -1,4 +1,4 @@
-package router
+package httphandlers
 
 import (
 	"io"
@@ -30,7 +30,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 func TestRouter(t *testing.T) {
 	repo := memstorv2.New()
 	serv := service.New(repo)
-	ts := httptest.NewServer(New(serv))
+	ts := httptest.NewServer(NewRouter(serv))
 	defer ts.Close()
 
 	tests := []struct {

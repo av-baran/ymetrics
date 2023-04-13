@@ -1,4 +1,4 @@
-package handlers
+package httphandlers
 
 import (
 	"errors"
@@ -20,11 +20,6 @@ type metricUpdater interface {
 type metricGetter interface {
 	GetGauge(string) (float64, error)
 	GetCounter(string) (int64, error)
-}
-
-type Service interface {
-	metricUpdater
-	metricGetter
 }
 
 func UpdateMetricHandler(u metricUpdater) http.HandlerFunc {
@@ -122,4 +117,9 @@ func getErrorCode(e error) (statusCode int) {
 		statusCode = http.StatusInternalServerError
 	}
 	return
+}
+
+func GetAllMetricsHandler(g metricGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+	}
 }
