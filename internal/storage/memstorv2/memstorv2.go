@@ -20,16 +20,14 @@ func New() *MemStorage {
 	}
 }
 
-func (s *MemStorage) StoreMetric(i interface{}) error {
-	switch i.(type) {
+func (s *MemStorage) StoreMetric(m interface{}) error {
+	switch m := m.(type) {
 	case *metric.Gauge:
 		log.Println("store ga")
-		m := i.(*metric.Gauge)
 		s.gaugeStor[m.Name] = m.Value
 		log.Printf("%v stored in gauge storage. Current values is %v", m.Name, s.gaugeStor[m.Name])
 	case *metric.Counter:
 		log.Println("store co")
-		m := i.(*metric.Counter)
 		s.counterStor[m.Name] = m.Value
 		log.Printf("%v stored in counter storage. Current value is %v", m.Name, s.counterStor[m.Name])
 	default:

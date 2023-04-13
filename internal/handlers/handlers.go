@@ -42,7 +42,6 @@ func UpdateMetricHandler(u metricUpdater) http.HandlerFunc {
 			statusCode := getErrorCode(err)
 			http.Error(w, err.Error(), statusCode)
 		}
-		return
 	}
 }
 
