@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/av-baran/ymetrics/internal/interrors"
-	"github.com/av-baran/ymetrics/internal/storage/memstor"
+	"github.com/av-baran/ymetrics/internal/service"
+	"github.com/av-baran/ymetrics/internal/storage/memstorv2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +28,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestRouter(t *testing.T) {
-	repo := memstor.New()
-	ts := httptest.NewServer(New(repo))
+	repo := memstorv2.New()
+	serv := service.New(repo)
+	ts := httptest.NewServer(New(serv))
 	defer ts.Close()
 
 	tests := []struct {
@@ -86,7 +88,7 @@ func TestRouter(t *testing.T) {
 			request:      "/update/counter/name/1",
 			method:       http.MethodPost,
 			expectedCode: http.StatusBadRequest,
-			expectedBody: interrors.ErrMetricAlreadyExists + "\n",
+			expectedBody: interrors.ErrMetricExistsWithAnotherType + "\n",
 		},
 	}
 	for _, v := range tests {

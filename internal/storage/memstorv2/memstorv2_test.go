@@ -1,4 +1,4 @@
-package memstor
+package memstorv2
 
 // import (
 // 	"reflect"

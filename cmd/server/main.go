@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/router"
-	"github.com/av-baran/ymetrics/internal/storage/memstor"
+	"github.com/av-baran/ymetrics/internal/service"
+	"github.com/av-baran/ymetrics/internal/storage/memstorv2"
 )
 
 func main() {
@@ -17,7 +18,8 @@ func main() {
 }
 
 func run() error {
-	repo := memstor.New()
+	repo := memstorv2.New()
+	serv := service.New(repo)
 	log.Printf("Starting server on %v", flagServerAddress)
-	return http.ListenAndServe(flagServerAddress, router.New(repo))
+	return http.ListenAndServe(flagServerAddress, router.New(serv))
 }
