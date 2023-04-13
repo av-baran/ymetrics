@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/av-baran/ymetrics/internal/interrors"
-	"github.com/av-baran/ymetrics/internal/models/metric"
+	"github.com/av-baran/ymetrics/internal/entity/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
 type Storager interface {

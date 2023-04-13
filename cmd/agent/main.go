@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/av-baran/ymetrics/internal/models/metric"
+	"github.com/av-baran/ymetrics/internal/entity/metric"
 	"github.com/go-resty/resty/v2"
 )
 

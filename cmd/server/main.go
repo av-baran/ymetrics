@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/av-baran/ymetrics/internal/router"
-	"github.com/av-baran/ymetrics/internal/service"
-	"github.com/av-baran/ymetrics/internal/storage/memstorv2"
+	"github.com/av-baran/ymetrics/internal/delivery/router"
+	"github.com/av-baran/ymetrics/internal/repository/memstorv2"
+	"github.com/av-baran/ymetrics/internal/usecase/service"
 )
 
 func main() {

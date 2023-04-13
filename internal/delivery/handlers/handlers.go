@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/av-baran/ymetrics/internal/interrors"
-	"github.com/av-baran/ymetrics/internal/models/metric"
+	"github.com/av-baran/ymetrics/internal/entity/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-chi/chi/v5"
 )
 

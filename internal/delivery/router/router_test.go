@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/av-baran/ymetrics/internal/interrors"
-	"github.com/av-baran/ymetrics/internal/service"
-	"github.com/av-baran/ymetrics/internal/storage/memstorv2"
+	"github.com/av-baran/ymetrics/internal/repository/memstorv2"
+	"github.com/av-baran/ymetrics/internal/usecase/service"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

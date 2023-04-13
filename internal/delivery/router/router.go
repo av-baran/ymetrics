@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/av-baran/ymetrics/internal/handlers"
+	"github.com/av-baran/ymetrics/internal/delivery/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
