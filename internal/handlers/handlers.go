@@ -117,6 +117,8 @@ func getErrorCode(e error) (statusCode int) {
 		statusCode = http.StatusBadRequest
 	case interrors.ErrMetricExistsWithAnotherType:
 		statusCode = http.StatusBadRequest
+	case interrors.ErrMetricNotFound:
+		statusCode = http.StatusNotFound
 	default:
 		statusCode = http.StatusInternalServerError
 	}
