@@ -26,7 +26,6 @@ func New(s Storager) *Service {
 
 func (s *Service) UpdateGauge(m *metric.Gauge) error {
 	t, ok := s.Storage.GetMetricType(m.Name)
-	log.Printf("cond: %v && %v", t, ok)
 	if ok && t != metric.GaugeType {
 		return errors.New(interrors.ErrMetricExistsWithAnotherType)
 	}
@@ -39,7 +38,6 @@ func (s *Service) UpdateGauge(m *metric.Gauge) error {
 
 func (s *Service) UpdateCounter(m *metric.Counter) error {
 	t, ok := s.Storage.GetMetricType(m.Name)
-	log.Printf("cond: %v && %v", t, ok)
 	if ok && t != metric.CounterType {
 		return errors.New(interrors.ErrMetricExistsWithAnotherType)
 	}
