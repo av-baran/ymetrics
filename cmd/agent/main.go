@@ -25,18 +25,25 @@ type inMetric struct {
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 
 func main() {
+	cfg := NewConfig()
+	log.Printf("Starting agent with poll interval: %v, report interval: %v, target server: %v",
+		cfg.PollInterval,
+		cfg.ReportInterval,
+		cfg.ServerAddress,
+	)
+	run(cfg)
+
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
+}
+
+func run(c *Config) {
 	var pollCount uint64
 
-	parseFlags()
-	pollInterval := time.Duration(flagPollInterval) * time.Second
-	reportInterval := time.Duration(flagReportInterval) * time.Second
-	serverAddress := "http://" + flagServerAddress
-
-	log.Printf("Starting agent with poll interval: %v, report interval: %v, target server: %v", flagPollInterval, flagReportInterval, flagServerAddress)
-
-	pollTicker := time.NewTicker(pollInterval)
+	pollTicker := time.NewTicker(c.PollInterval)
 	defer pollTicker.Stop()
-	reportTicker := time.NewTicker(reportInterval)
+	reportTicker := time.NewTicker(c.ReportInterval)
 	defer reportTicker.Stop()
 
 	go func() {
@@ -48,7 +55,7 @@ func main() {
 				inputMetrics = collectMetrics(pollCount)
 			case <-reportTicker.C:
 				for _, metric := range inputMetrics {
-					if err := sendMetric(serverAddress, metric); err != nil {
+					if err := sendMetric(c.URL, metric); err != nil {
 						log.Print(err.Error())
 					}
 				}
@@ -56,10 +63,6 @@ func main() {
 			}
 		}
 	}()
-
-	exitSignal := make(chan os.Signal, 1)
-	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
-	<-exitSignal
 }
 
 func collectMetrics(pollCount uint64) []inMetric {
@@ -116,7 +119,7 @@ func sendMetric(srv string, m inMetric) error {
 			"type":  string(m.Type),
 			"value": m.Value.(string),
 		}).
-		Post(srv + "/update/{type}/{name}/{value}")
+		Post(srv + "/update/{type}/{name}/{value}/f")
 
 	if err != nil {
 		return err
