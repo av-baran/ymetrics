@@ -32,10 +32,6 @@ func main() {
 		cfg.ServerAddress,
 	)
 	run(cfg)
-
-	exitSignal := make(chan os.Signal, 1)
-	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
-	<-exitSignal
 }
 
 func run(c *Config) {
@@ -63,6 +59,10 @@ func run(c *Config) {
 			}
 		}
 	}()
+
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
 }
 
 func collectMetrics(pollCount uint64) []inMetric {
@@ -119,7 +119,7 @@ func sendMetric(srv string, m inMetric) error {
 			"type":  string(m.Type),
 			"value": m.Value.(string),
 		}).
-		Post(srv + "/update/{type}/{name}/{value}/f")
+		Post(srv + "/update/{type}/{name}/{value}")
 
 	if err != nil {
 		return err
