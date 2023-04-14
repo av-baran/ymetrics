@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/av-baran/ymetrics/internal/entity/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,18 +91,25 @@ func Test_sendMetric(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	srv := httpMock("/update/", http.StatusOK, "Ok")
-	defer srv.Close()
+	oKsrv := httpServerMock("/update/", http.StatusOK, "Ok")
+	defer oKsrv.Close()
+	errSrv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError+"\n")
+	defer errSrv.Close()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := sendMetric(srv.URL, tt.inMetric); (err != nil) != tt.wantErr {
-				t.Errorf("sendMetric() error = %v, wantErr %v", err, tt.wantErr)
+			got1 := sendMetric(oKsrv.URL, tt.inMetric)
+			if tt.wantErr {
+				assert.Error(t, got1)
+			} else {
+				assert.NoError(t, got1)
 			}
+			got2 := sendMetric(errSrv.URL, tt.inMetric)
+			assert.Error(t, got2)
 		})
 	}
 }
 
-func httpMock(path string, statusCode int, resp interface{}) *httptest.Server {
+func httpServerMock(path string, statusCode int, resp interface{}) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(path, dummyHandler(statusCode, resp))
 	return httptest.NewServer(mux)

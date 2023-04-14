@@ -7,11 +7,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type Service interface {
-	metricUpdater
-	metricGetter
-}
-
 func NewRouter(s Service) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)

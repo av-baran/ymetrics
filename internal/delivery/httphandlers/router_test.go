@@ -27,7 +27,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 	return resp, string(respBody)
 }
 
-func TestRouter(t *testing.T) {
+func TestNewRouter(t *testing.T) {
 	repo := memstorv2.New()
 	serv := service.New(repo)
 	ts := httptest.NewServer(NewRouter(serv))
@@ -77,7 +77,7 @@ func TestRouter(t *testing.T) {
 		},
 		{
 			name:         "POST - OK",
-			request:      "/update/gauge/name/1.0",
+			request:      "/update/gauge/name/1.01",
 			method:       http.MethodPost,
 			expectedCode: http.StatusOK,
 			expectedBody: "",
@@ -89,6 +89,21 @@ func TestRouter(t *testing.T) {
 			method:       http.MethodPost,
 			expectedCode: http.StatusBadRequest,
 			expectedBody: interrors.ErrMetricExistsWithAnotherType + "\n",
+		},
+		{
+			//FIXME depends on previous saved value. Should be same metric name
+			name:         "GET",
+			request:      "/value/gauge/name",
+			method:       http.MethodGet,
+			expectedCode: http.StatusOK,
+			expectedBody: "1.01",
+		},
+		{
+			name:         "GET",
+			request:      "/value/gauge/unknownname",
+			method:       http.MethodGet,
+			expectedCode: http.StatusNotFound,
+			expectedBody: interrors.ErrMetricNotFound + "\n",
 		},
 	}
 	for _, v := range tests {

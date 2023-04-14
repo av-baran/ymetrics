@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"log"
 
 	"github.com/av-baran/ymetrics/internal/entity/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
@@ -51,7 +50,6 @@ func (s *Service) UpdateCounter(m *metric.Counter) error {
 		}
 	}
 	if err := s.Storage.StoreMetric(m); err != nil {
-		log.Printf("%v", err.Error())
 		return err
 	}
 	return nil
@@ -77,4 +75,7 @@ func (s *Service) GetCounter(name string) (int64, error) {
 		return v, nil
 	}
 	return 0, errors.New(interrors.ErrStorageInternalError)
+}
+
+func (s *Service) GetAllMetrics() {
 }
