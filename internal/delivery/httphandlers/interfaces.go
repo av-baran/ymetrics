@@ -12,7 +12,7 @@ type metricUpdater interface {
 type metricGetter interface {
 	GetGauge(string) (float64, error)
 	GetCounter(string) (int64, error)
-	GetAllMetrics()
+	GetAllMetrics() map[string]interface{}
 }
 
 //go:generate mockery --name Service

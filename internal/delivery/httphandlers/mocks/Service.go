@@ -13,8 +13,19 @@ type Service struct {
 }
 
 // GetAllMetrics provides a mock function with given fields:
-func (_m *Service) GetAllMetrics() {
-	_m.Called()
+func (_m *Service) GetAllMetrics() map[string]interface{} {
+	ret := _m.Called()
+
+	var r0 map[string]interface{}
+	if rf, ok := ret.Get(0).(func() map[string]interface{}); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	return r0
 }
 
 // GetCounter provides a mock function with given fields: _a0

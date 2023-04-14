@@ -49,9 +49,9 @@ func TestMemStorage_StoreMetric(t *testing.T) {
 
 			switch m := tt.arg.(type) {
 			case *metric.Gauge:
-				assert.Equal(t, storage.gaugeStor[m.Name], m.Value)
+				assert.Equal(t, storage.GaugeStor[m.Name], m.Value)
 			case *metric.Counter:
-				assert.Equal(t, storage.counterStor[m.Name], m.Value)
+				assert.Equal(t, storage.CounterStor[m.Name], m.Value)
 			default:
 				assert.Error(t, err)
 
@@ -71,8 +71,8 @@ func TestMemStorage_GetMetricType(t *testing.T) {
 		{
 			name: "test gauge",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "name",
 			wantRes: metric.GaugeType,
@@ -81,8 +81,8 @@ func TestMemStorage_GetMetricType(t *testing.T) {
 		{
 			name: "test counter",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "another_name",
 			wantRes: metric.CounterType,
@@ -91,8 +91,8 @@ func TestMemStorage_GetMetricType(t *testing.T) {
 		{
 			name: "test unknown",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "unknown_name",
 			wantRes: metric.UnknownType,
@@ -121,8 +121,8 @@ func TestMemStorage_GetMetric(t *testing.T) {
 		{
 			name: "test gauge",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "name",
 			wantRes: float64(1.01),
@@ -131,8 +131,8 @@ func TestMemStorage_GetMetric(t *testing.T) {
 		{
 			name: "test counter",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "another_name",
 			wantRes: int64(10),
@@ -141,8 +141,8 @@ func TestMemStorage_GetMetric(t *testing.T) {
 		{
 			name: "test unknown",
 			storage: &MemStorage{
-				gaugeStor:   map[string]float64{"name": 1.01},
-				counterStor: map[string]int64{"another_name": 10},
+				GaugeStor:   map[string]float64{"name": 1.01},
+				CounterStor: map[string]int64{"another_name": 10},
 			},
 			arg:     "unknown_name",
 			wantRes: nil,

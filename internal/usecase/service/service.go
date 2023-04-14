@@ -13,6 +13,9 @@ type Storager interface {
 	// FIXME хорошо ли здесь использовать пустой интерфейс или сделать отдельные методы под каждый тип
 	StoreMetric(interface{}) error
 	GetMetric(string) (interface{}, error)
+
+	GetAllGauge() map[string]float64
+	GetAllCounter() map[string]int64
 }
 
 type Service struct {
@@ -69,7 +72,7 @@ func (s *Service) GetGauge(name string) (float64, error) {
 func (s *Service) GetCounter(name string) (int64, error) {
 	i, err := s.Storage.GetMetric(name)
 	if err != nil {
-		return 0.0, err
+		return 0, err
 	}
 	if v, ok := i.(int64); ok {
 		return v, nil
@@ -77,5 +80,17 @@ func (s *Service) GetCounter(name string) (int64, error) {
 	return 0, errors.New(interrors.ErrStorageInternalError)
 }
 
-func (s *Service) GetAllMetrics() {
+func (s *Service) GetAllMetrics() map[string]interface{} {
+	counters := s.Storage.GetAllCounter()
+	gauges := s.Storage.GetAllGauge()
+	res := make(map[string]interface{}, len(counters)+len(gauges))
+
+	for k, v := range counters {
+		res[k] = v
+	}
+	for k, v := range gauges {
+		res[k] = v
+	}
+
+	return res
 }
