@@ -39,6 +39,7 @@ func (s *MemStorage) GetGauge(name string) (string, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	v, ok := s.GaugeStor[name]
+
 	if !ok {
 		return "", errors.New(interrors.ErrMetricNotFound)
 	}
@@ -58,11 +59,19 @@ func (s *MemStorage) GetCounter(name string) (string, error) {
 func (s *MemStorage) GetAllGauge() map[string]float64 {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	return s.GaugeStor
+	res := make(map[string]float64, len(s.GaugeStor))
+	for k, v := range s.GaugeStor {
+		res[k] = v
+	}
+	return res
 }
 
 func (s *MemStorage) GetAllCounter() map[string]int64 {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	return s.CounterStor
+	res := make(map[string]int64, len(s.GaugeStor))
+	for k, v := range s.CounterStor {
+		res[k] = v
+	}
+	return res
 }
