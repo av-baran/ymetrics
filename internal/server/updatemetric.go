@@ -29,6 +29,8 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
 		}
 		s.Storage.AddCounter(name, v)
+	default:
+		http.Error(w, "unknown metric type", http.StatusBadRequest)
 	}
 
 	w.WriteHeader(http.StatusOK)
