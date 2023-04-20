@@ -30,7 +30,7 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Storage.AddCounter(name, v)
 	default:
-		http.Error(w, "unknown metric type", http.StatusBadRequest)
+		http.Error(w, "unknown metric type", http.StatusNotImplemented)
 	}
 
 	w.WriteHeader(http.StatusOK)

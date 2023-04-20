@@ -1,4 +1,4 @@
-package memstorv2
+package memstor
 
 // import (
 // 	"testing"

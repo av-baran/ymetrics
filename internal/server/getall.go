@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"text/template"
-)
 
-const (
-	pageTemplate = "./templates/allmetrics.tmpl"
+	"github.com/av-baran/ymetrics/internal/templates"
 )
 
 func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +29,9 @@ func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeTemplate(w http.ResponseWriter, metrics map[string]string) error {
-	t, err := template.ParseFiles(pageTemplate)
+	t := template.New("t")
 
+	t, err := t.Parse(templates.GetAllPageTemplate)
 	if err != nil {
 		return fmt.Errorf("cannot parse template: %w", err)
 	}
