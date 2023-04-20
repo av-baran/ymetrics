@@ -13,8 +13,6 @@ const (
 
 type AgentConfig struct {
 	ServerAddress string
-	Protocol      string
-	URL           string
 
 	PollInterval   int
 	ReportInterval int
@@ -40,8 +38,6 @@ func NewAgentConfig() *AgentConfig {
 			cfg.PollInterval = r
 		}
 	}
-
-	cfg.URL = cfg.Protocol + cfg.ServerAddress
 	return cfg
 }
 

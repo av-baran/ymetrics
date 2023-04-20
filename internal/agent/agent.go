@@ -35,16 +35,16 @@ func (a *Agent) Run(cfg *config.AgentConfig) error {
 	for {
 		select {
 		case <-pollTicker.C:
-			a.CollectMetrics()
+			a.collectMetrics()
 		case <-reportTicker.C:
-			if err := a.Dump(); err != nil {
+			if err := a.dump(); err != nil {
 				return fmt.Errorf("cannot dump metrics to server: %w", err)
 			}
 		}
 	}
 }
 
-func (a *Agent) CollectMetrics() {
+func (a *Agent) collectMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	a.pollCount++
@@ -199,7 +199,7 @@ func (a *Agent) CollectMetrics() {
 	}
 }
 
-func (a *Agent) Dump() error {
+func (a *Agent) dump() error {
 	defer func() { a.pollCount = 0 }()
 	for _, m := range collectedMetrics {
 		if err := a.sendMetric(m); err != nil {
