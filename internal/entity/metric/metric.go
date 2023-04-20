@@ -8,6 +8,12 @@ const (
 	UnknownType = Type("unknown")
 )
 
+type Metric struct {
+	Name  string
+	Value interface{}
+	Type  Type
+}
+
 type Rawdata struct {
 	Type  Type
 	Name  string
