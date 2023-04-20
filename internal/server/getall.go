@@ -3,9 +3,13 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"text/template"
 )
 
-//text/template
+const (
+	pageTemplate = "./templates/allmetrics.tmpl"
+)
+
 func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
@@ -21,20 +25,21 @@ func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		metrics[k] = fmt.Sprintf("%v", v)
 	}
 
-	writeHTML(w, metrics)
+	if err := writeTemplate(w, metrics); err != nil {
+		http.Error(w, fmt.Sprintf("can't render metrics page: %s", err), http.StatusInternalServerError)
+	}
 }
 
-func writeHTML(w http.ResponseWriter, metrics map[string]string) {
-	const (
-		pageHeader = `<html><body><h1>Metric list</h1><ul>`
-		pageFooter = `</ul></body></html>`
-	)
+func writeTemplate(w http.ResponseWriter, metrics map[string]string) error {
+	t, err := template.ParseFiles(pageTemplate)
 
-	fmt.Fprint(w, pageHeader)
-
-	for k, v := range metrics {
-		fmt.Fprintf(w, "<li> %v = %v </li>", k, v)
+	if err != nil {
+		return fmt.Errorf("cannot parse template: %w", err)
 	}
 
-	fmt.Fprint(w, pageFooter)
+	if err := t.Execute(w, metrics); err != nil {
+		return fmt.Errorf("cannot render template: %w", err)
+	}
+
+	return nil
 }
