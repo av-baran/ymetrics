@@ -20,13 +20,13 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	case metric.GaugeType:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), getErrorCode(err))
+			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), http.StatusBadRequest)
 		}
 		s.Storage.SetGauge(name, v)
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), getErrorCode(err))
+			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
 		}
 		s.Storage.AddCounter(name, v)
 	}
