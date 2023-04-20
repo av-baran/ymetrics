@@ -14,12 +14,6 @@ type Metric struct {
 	Type  Type
 }
 
-type Rawdata struct {
-	Type  Type
-	Name  string
-	Value string
-}
-
 type Gauge struct {
 	Name  string
 	Value float64

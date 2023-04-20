@@ -1,11 +1,7 @@
 package memstorv2
 
 import (
-	"errors"
-	"log"
-
-	"github.com/av-baran/ymetrics/internal/entity/metric"
-	"github.com/av-baran/ymetrics/pkg/interrors"
+	"fmt"
 )
 
 type MemStorage struct {
@@ -20,44 +16,21 @@ func New() *MemStorage {
 	}
 }
 
-func (s *MemStorage) StoreMetric(m interface{}) error {
-	switch m := m.(type) {
-	case *metric.Gauge:
-		s.GaugeStor[m.Name] = m.Value
-		log.Printf("%v stored in gauge storage. Current values is %v", m.Name, s.GaugeStor[m.Name])
-	case *metric.Counter:
-		s.CounterStor[m.Name] = m.Value
-		log.Printf("%v stored in counter storage. Current value is %v", m.Name, s.CounterStor[m.Name])
-	default:
-		return errors.New(interrors.ErrInvalidMetricType)
-	}
-	return nil
+func (s *MemStorage) SetGauge(name string, value float64) {
+	s.GaugeStor[name] = value
 }
 
-// FIXME
-func (s *MemStorage) GetMetricType(name string) (metric.Type, bool) {
-	if _, ok := s.GaugeStor[name]; ok {
-		return metric.GaugeType, true
-	}
-	if _, ok := s.CounterStor[name]; ok {
-		return metric.CounterType, true
-	}
-	return metric.UnknownType, false
+func (s *MemStorage) AddCounter(name string, value int64) {
+	v, _ := s.CounterStor[name]
+	s.CounterStor[name] = v + value
 }
 
-func (s *MemStorage) GetMetric(name string) (interface{}, error) {
-	mType, ok := s.GetMetricType(name)
-	if !ok {
-		return nil, errors.New(interrors.ErrMetricNotFound)
-	}
-	switch mType {
-	case metric.GaugeType:
-		return s.GaugeStor[name], nil
-	case metric.CounterType:
-		return s.CounterStor[name], nil
-	default:
-		return nil, errors.New(interrors.ErrInvalidMetricType)
-	}
+func (s *MemStorage) GetGauge(name string) string {
+	return fmt.Sprintf("%v", s.GaugeStor[name])
+}
+
+func (s *MemStorage) GetCounter(name string) string {
+	return fmt.Sprintf("%v", s.CounterStor[name])
 }
 
 func (s *MemStorage) GetAllGauge() map[string]float64 {

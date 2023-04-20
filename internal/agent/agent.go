@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"runtime"
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/config"
-	"github.com/av-baran/ymetrics/internal/entity/metric"
+	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -230,7 +229,7 @@ func (a *Agent) sendMetric(m metric.Metric) error {
 		return fmt.Errorf("cannot send metric: %w", err)
 	}
 
-	if resp.StatusCode() != http.StatusOK {
+	if resp.StatusCode() >= 300 {
 		return fmt.Errorf("remote server respond with no 200 status code: %v", resp.StatusCode())
 	}
 
