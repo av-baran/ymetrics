@@ -31,5 +31,5 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 		s.Storage.AddCounter(name, v)
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 }
