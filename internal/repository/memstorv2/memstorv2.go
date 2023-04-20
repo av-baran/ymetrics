@@ -1,7 +1,10 @@
 package memstorv2
 
 import (
+	"errors"
 	"fmt"
+
+	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
 type MemStorage struct {
@@ -25,12 +28,20 @@ func (s *MemStorage) AddCounter(name string, value int64) {
 	s.CounterStor[name] = v + value
 }
 
-func (s *MemStorage) GetGauge(name string) string {
-	return fmt.Sprintf("%v", s.GaugeStor[name])
+func (s *MemStorage) GetGauge(name string) (string, error) {
+	v, ok := s.GaugeStor[name]
+	if !ok {
+		return "", errors.New(interrors.ErrMetricNotFound)
+	}
+	return fmt.Sprintf("%v", v), nil
 }
 
-func (s *MemStorage) GetCounter(name string) string {
-	return fmt.Sprintf("%v", s.CounterStor[name])
+func (s *MemStorage) GetCounter(name string) (string, error) {
+	v, ok := s.CounterStor[name]
+	if !ok {
+		return "", errors.New(interrors.ErrMetricNotFound)
+	}
+	return fmt.Sprintf("%v", v), nil
 }
 
 func (s *MemStorage) GetAllGauge() map[string]float64 {
