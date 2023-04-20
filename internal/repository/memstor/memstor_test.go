@@ -1,161 +1,78 @@
 package memstor
 
-// import (
-// 	"testing"
-//
-// 	"github.com/av-baran/ymetrics/internal/metric"
-// 	"github.com/stretchr/testify/assert"
-// )
-//
-// func TestNew(t *testing.T) {
-// 	assert.NotEmpty(t, New())
-// }
-//
-// func TestMemStorage_StoreMetric(t *testing.T) {
-// 	tests := []struct {
-// 		name    string
-// 		arg     interface{}
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "test gauge",
-// 			arg: &metric.Gauge{
-// 				Name:  "newname",
-// 				Value: float64(0.001),
-// 			},
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "test counter",
-// 			arg: &metric.Counter{
-// 				Name:  "newname",
-// 				Value: int64(1),
-// 			},
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name:    "test unknown",
-// 			arg:     metric.UnknownType,
-// 			wantErr: true,
-// 		},
-// 	}
-// 	storage := New()
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			err := storage.StoreMetric(tt.arg)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("MemStorage.StoreMetric() error = %v, wantErr %v", err, tt.wantErr)
-// 			}
-//
-// 			switch m := tt.arg.(type) {
-// 			case *metric.Gauge:
-// 				assert.Equal(t, storage.GaugeStor[m.Name], m.Value)
-// 			case *metric.Counter:
-// 				assert.Equal(t, storage.CounterStor[m.Name], m.Value)
-// 			default:
-// 				assert.Error(t, err)
-//
-// 			}
-// 		})
-// 	}
-// }
-//
-// func TestMemStorage_GetMetricType(t *testing.T) {
-// 	tests := []struct {
-// 		name    string
-// 		storage *MemStorage
-// 		arg     string
-// 		wantErr bool
-// 		wantRes metric.Type
-// 	}{
-// 		{
-// 			name: "test gauge",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "name",
-// 			wantRes: metric.GaugeType,
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "test counter",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "another_name",
-// 			wantRes: metric.CounterType,
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "test unknown",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "unknown_name",
-// 			wantRes: metric.UnknownType,
-// 			wantErr: true,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, got1 := tt.storage.GetMetricType(tt.arg)
-// 			if got1 != !tt.wantErr {
-// 				t.Errorf("MemStorage.GetMetric() ok = %v, wantErr %v", got1, tt.wantErr)
-// 			}
-// 			assert.Equal(t, got, tt.wantRes)
-// 		})
-// 	}
-// }
-//
-// func TestMemStorage_GetMetric(t *testing.T) {
-// 	tests := []struct {
-// 		name    string
-// 		storage *MemStorage
-// 		arg     string
-// 		wantErr bool
-// 		wantRes interface{}
-// 	}{
-// 		{
-// 			name: "test gauge",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "name",
-// 			wantRes: float64(1.01),
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "test counter",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "another_name",
-// 			wantRes: int64(10),
-// 			wantErr: false,
-// 		},
-// 		{
-// 			name: "test unknown",
-// 			storage: &MemStorage{
-// 				GaugeStor:   map[string]float64{"name": 1.01},
-// 				CounterStor: map[string]int64{"another_name": 10},
-// 			},
-// 			arg:     "unknown_name",
-// 			wantRes: nil,
-// 			wantErr: true,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := tt.storage.GetMetric(tt.arg)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("MemStorage.GetMetric() ok = %v, wantErr %v", err, tt.wantErr)
-// 			}
-// 			assert.Equal(t, got, tt.wantRes)
-// 		})
-// 	}
-// }
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestNew(t *testing.T) {
+	assert.NotEmpty(t, New())
+}
+
+func TestMemStorage_SetGetGauge(t *testing.T) {
+	type arguments struct {
+		name  string
+		value float64
+	}
+	tests := []struct {
+		name string
+		args arguments
+	}{
+		{
+			name: "test gauge",
+			args: arguments{
+				name:  "newname",
+				value: float64(0.001),
+			},
+		},
+	}
+	storage := New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage.SetGauge(tt.args.name, tt.args.value)
+			got, err := storage.GetGauge(tt.args.name)
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
+			got1, err := storage.GetGauge("unknown metric")
+			assert.Error(t, err)
+			assert.Equal(t, got1, "")
+		})
+	}
+}
+
+func TestMemStorage_SetGetCounter(t *testing.T) {
+	type arguments struct {
+		name  string
+		value int64
+	}
+	tests := []struct {
+		name string
+		args arguments
+	}{
+		{
+			name: "test gauge",
+			args: arguments{
+				name:  "newname",
+				value: int64(10),
+			},
+		},
+	}
+	storage := New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage.AddCounter(tt.args.name, tt.args.value)
+			got, err := storage.GetCounter(tt.args.name)
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
+			got1, err := storage.GetGauge("unknown metric")
+			assert.Error(t, err)
+			assert.Equal(t, got1, "")
+			storage.AddCounter(tt.args.name, 1)
+			got2, err := storage.GetCounter(tt.args.name)
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("%v", tt.args.value+1), got2)
+		})
+	}
+}
