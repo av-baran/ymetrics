@@ -21,7 +21,7 @@ func (s *MemStorage) SetGauge(name string, value float64) {
 }
 
 func (s *MemStorage) AddCounter(name string, value int64) {
-	v, _ := s.CounterStor[name]
+	v := s.CounterStor[name]
 	s.CounterStor[name] = v + value
 }
 
