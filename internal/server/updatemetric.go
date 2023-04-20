@@ -23,16 +23,15 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), http.StatusBadRequest)
 		}
 		s.Storage.SetGauge(name, v)
-		return
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
 		}
 		s.Storage.AddCounter(name, v)
-		return
 	default:
 		http.Error(w, "unknown metric type", http.StatusNotImplemented)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
