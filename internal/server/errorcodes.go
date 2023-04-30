@@ -1,20 +1,21 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
 func getErrorCode(e error) (statusCode int) {
-	switch e.Error() {
-	case interrors.ErrInvalidMetricType:
+	switch {
+	case errors.Is(e, interrors.ErrInvalidMetricType):
 		statusCode = http.StatusNotImplemented
-	case interrors.ErrInvalidMetricValue:
+	case errors.Is(e, interrors.ErrInvalidMetricValue):
 		statusCode = http.StatusBadRequest
-	case interrors.ErrMetricExistsWithAnotherType:
+	case errors.Is(e, interrors.ErrMetricExistsWithAnotherType):
 		statusCode = http.StatusBadRequest
-	case interrors.ErrMetricNotFound:
+	case errors.Is(e, interrors.ErrMetricNotFound):
 		statusCode = http.StatusNotFound
 	default:
 		statusCode = http.StatusInternalServerError

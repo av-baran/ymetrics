@@ -125,7 +125,7 @@ func TestServerGetValue(t *testing.T) {
 			request:      "/value/gauge/unknownname",
 			method:       http.MethodGet,
 			expectedCode: http.StatusNotFound,
-			expectedBody: "cannot get gauge metric: " + interrors.ErrMetricNotFound + "\n",
+			expectedBody: "cannot get gauge metric: " + interrors.ErrMetricNotFound.Error() + "\n",
 		},
 	}
 	for _, v := range tests {

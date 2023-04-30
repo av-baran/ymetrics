@@ -1,10 +1,12 @@
 package interrors
 
-const (
-	ErrInvalidMetricType           = "invalid metric type"
-	ErrInvalidMetricValue          = "invalid value"
-	ErrMetricExistsWithAnotherType = "metric with same name and different type already exists"
-	ErrBadURL                      = "bad request"
-	ErrMetricNotFound              = "metric not found"
-	ErrStorageInternalError        = "metric storage error"
+import "errors"
+
+var (
+	ErrInvalidMetricType           = errors.New("invalid metric type")
+	ErrInvalidMetricValue          = errors.New("invalid value")
+	ErrMetricExistsWithAnotherType = errors.New("metric with same name and different type already exists")
+	ErrBadURL                      = errors.New("bad request")
+	ErrMetricNotFound              = errors.New("metric not found")
+	ErrStorageInternalError        = errors.New("metric storage error")
 )

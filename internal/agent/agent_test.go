@@ -144,7 +144,7 @@ func Test_sendMetricErr(t *testing.T) {
 		},
 	}
 
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError+"\n")
+	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -197,7 +197,7 @@ func Test_dumpOk(t *testing.T) {
 }
 
 func Test_dumpErr(t *testing.T) {
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError+"\n")
+	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 

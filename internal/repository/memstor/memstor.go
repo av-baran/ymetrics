@@ -1,7 +1,6 @@
 package memstor
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -41,7 +40,7 @@ func (s *MemStorage) GetGauge(name string) (string, error) {
 	v, ok := s.GaugeStor[name]
 
 	if !ok {
-		return "", errors.New(interrors.ErrMetricNotFound)
+		return "", interrors.ErrMetricNotFound
 	}
 	return fmt.Sprintf("%v", v), nil
 }
@@ -51,7 +50,7 @@ func (s *MemStorage) GetCounter(name string) (string, error) {
 	defer memStorageSync.Unlock()
 	v, ok := s.CounterStor[name]
 	if !ok {
-		return "", errors.New(interrors.ErrMetricNotFound)
+		return "", interrors.ErrMetricNotFound
 	}
 	return fmt.Sprintf("%v", v), nil
 }
