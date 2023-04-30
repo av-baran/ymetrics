@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"runtime"
 	"time"
@@ -25,7 +26,7 @@ func NewAgent(cfg *config.AgentConfig) *Agent {
 	return &Agent{cfg, 0, resty.New()}
 }
 
-func (a *Agent) Run(cfg *config.AgentConfig) error {
+func (a *Agent) Run(cfg *config.AgentConfig) {
 	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
 	defer pollTicker.Stop()
 	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
@@ -37,7 +38,7 @@ func (a *Agent) Run(cfg *config.AgentConfig) error {
 			a.collectMetrics()
 		case <-reportTicker.C:
 			if err := a.dump(); err != nil {
-				return fmt.Errorf("cannot dump metrics to server: %w", err)
+				log.Printf("cannot dump metrics to server: %s", err)
 			}
 		}
 	}
