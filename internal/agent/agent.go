@@ -269,7 +269,7 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 		Post(a.cfg.GetURL() + "/update/")
 
 	if err != nil {
-		return fmt.Errorf("cannot send metric: %w", err)
+		return fmt.Errorf("resty error with statuscode %v: %w", resp.StatusCode(), err)
 	}
 
 	if resp.StatusCode() >= 300 {
