@@ -27,13 +27,13 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 		stringVal, err := s.Storage.GetCounter(m.ID)
 		if err != nil {
 			err = fmt.Errorf("cannot get counter: %w", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 
 		if v, err := strconv.Atoi(stringVal); err != nil {
 			err = fmt.Errorf("cannot convert counter to int: %w", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		} else {
 			v64 := int64(v)
