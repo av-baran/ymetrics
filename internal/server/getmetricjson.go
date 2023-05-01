@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -20,6 +21,7 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Printf("get body: %+v", m)
 
 	switch m.MType {
 	case string(metric.CounterType):
