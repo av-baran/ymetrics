@@ -77,6 +77,7 @@ func (r *logResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (r *logResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.Header().Set("Content-Type", "application/json")
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
