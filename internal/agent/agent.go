@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -202,7 +204,7 @@ func (a *Agent) collectMetrics() {
 func (a *Agent) dump() error {
 	defer func() { a.pollCount = 0 }()
 	for _, m := range collectedMetrics {
-		if err := a.sendMetric(m); err != nil {
+		if err := a.sendMetricJSON(m); err != nil {
 			return fmt.Errorf("cannot send metric: %w", err)
 		}
 	}
@@ -225,6 +227,46 @@ func (a *Agent) sendMetric(m metric.Metric) error {
 			"value": m.Value.(string),
 		}).
 		Post(a.cfg.GetURL() + "/update/{type}/{name}/{value}")
+
+	if err != nil {
+		return fmt.Errorf("cannot send metric: %w", err)
+	}
+
+	if resp.StatusCode() >= 300 {
+		return fmt.Errorf("remote server respond with no 200 status code: %v", resp.StatusCode())
+	}
+
+	return nil
+}
+
+func (a *Agent) sendMetricJSON(m metric.Metric) error {
+	var buf bytes.Buffer
+
+	encoder := json.NewEncoder(&buf)
+
+	mNew := &metric.Metrics{
+		ID:    m.Name,
+		MType: string(m.Type),
+	}
+
+	switch m.Type {
+	case metric.GaugeType:
+		v, _ := m.Value.(float64)
+		mNew.Value = &v
+	case metric.CounterType:
+		v, _ := m.Value.(int64)
+		mNew.Delta = &v
+	default:
+		return errors.New("type not implemented")
+	}
+
+	encoder.Encode(&mNew)
+	log.Printf("%+v", mNew)
+
+	resp, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(buf.Bytes()).
+		Post(a.cfg.GetURL() + "/update/")
 
 	if err != nil {
 		return fmt.Errorf("cannot send metric: %w", err)

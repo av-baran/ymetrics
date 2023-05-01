@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -73,7 +74,7 @@ func TestServer(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.request)
+		resp, _ := testRequest(t, ts, v.method, v.request, "")
 		defer resp.Body.Close()
 		assert.Equal(t, v.expectedCode, resp.StatusCode)
 	}
@@ -129,7 +130,7 @@ func TestServerGetValue(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, got := testRequest(t, ts, v.method, v.request)
+		resp, got := testRequest(t, ts, v.method, v.request, "")
 		defer resp.Body.Close()
 		assert.Equal(t, v.expectedCode, resp.StatusCode)
 		assert.Equal(t, v.expectedBody, got)
@@ -156,14 +157,133 @@ func TestServerGetAll(t *testing.T) {
 		},
 	}
 	for _, v := range tests {
-		resp, _ := testRequest(t, ts, v.method, v.request)
+		resp, _ := testRequest(t, ts, v.method, v.request, "")
 		defer resp.Body.Close()
 		assert.Equal(t, v.expectedCode, resp.StatusCode)
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
+func TestServerUpdateJSON(t *testing.T) {
+	repo := memstor.New()
+	serv := New(repo)
+	ts := httptest.NewServer(serv.Router)
+	defer ts.Close()
+
+	tests := []struct {
+		name         string
+		request      string
+		method       string
+		body         string
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "counter POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"counter","delta":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"counter","delta":5}` + "\n",
+		},
+		{
+			name:         "second counter POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"counter","delta":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+		},
+		{
+			name:         "gauge POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"gauge","value":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+		},
+		{
+			name:         "gauge POST - unknown type",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"unknown","value":5}`,
+			expectedCode: http.StatusNotImplemented,
+			expectedBody: "unknown metric type" + "\n",
+		},
+	}
+	for _, v := range tests {
+		resp, got := testRequest(t, ts, v.method, v.request, v.body)
+		defer resp.Body.Close()
+		assert.Equal(t, v.expectedCode, resp.StatusCode)
+		assert.Equal(t, v.expectedBody, got)
+	}
+}
+
+func TestServerGetJSON(t *testing.T) {
+	repo := memstor.New()
+	serv := New(repo)
+	ts := httptest.NewServer(serv.Router)
+	defer ts.Close()
+
+	tests := []struct {
+		name         string
+		request      string
+		method       string
+		body         string
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "gauge POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"gauge","value":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+		},
+		{
+			name:         "gauge GET - OK",
+			request:      "/value/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"gauge"}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+		},
+		{
+			name:         "counter POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"counter","delta":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"counter","delta":5}` + "\n",
+		},
+		{
+			name:         "second counter POST - OK",
+			request:      "/update/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"counter","delta":5}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+		},
+		{
+			name:         "counter GET - OK",
+			request:      "/value/",
+			method:       http.MethodPost,
+			body:         `{"id":"some_name","type":"counter"}`,
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+		},
+	}
+	for _, v := range tests {
+		resp, got := testRequest(t, ts, v.method, v.request, v.body)
+		defer resp.Body.Close()
+		assert.Equal(t, v.expectedCode, resp.StatusCode)
+		assert.Equal(t, v.expectedBody, got)
+	}
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body string) (*http.Response, string) {
+	b := bytes.NewBuffer([]byte(body))
+	req, err := http.NewRequest(method, ts.URL+path, b)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
