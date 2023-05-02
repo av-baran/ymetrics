@@ -86,4 +86,5 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 		dr = *m.Delta
 	}
 	log.Printf("set resp body: %+v, value: %v, delta: %v", m, vr, dr)
+	w.WriteHeader(http.StatusOK)
 }

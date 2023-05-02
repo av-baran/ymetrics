@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -77,6 +78,7 @@ func (r *logResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (r *logResponseWriter) WriteHeader(statusCode int) {
+	log.Printf("logging statusCode: %v", statusCode)
 	r.ResponseWriter.Header().Set("Content-Type", "application/json")
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
