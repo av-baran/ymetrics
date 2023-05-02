@@ -20,6 +20,36 @@ type compressReader struct {
 	zr *gzip.Reader
 }
 
+func gzMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		if supportsGzip {
+			w.Header().Set("Content-Encoding", "gzip")
+			cw := newCompressWriter(w)
+			ow = cw
+			defer cw.Close()
+		}
+
+		contentEncoding := r.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
+			cr, err := newCompressReader(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				logger.Log.Sugar().Debugln("cannot decompress body: %w", err)
+				return
+			}
+			r.Body = cr
+			defer cr.Close()
+		}
+
+		h.ServeHTTP(ow, r)
+	})
+}
+
 func newCompressWriter(w http.ResponseWriter) *compressWriter {
 	return &compressWriter{
 		w:  w,
@@ -49,10 +79,7 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 		return nil, fmt.Errorf("cannot create new gzip reader: %w", err)
 	}
 
-	return &compressReader{
-		r:  r,
-		zr: zr,
-	}, nil
+	return &compressReader{r: r, zr: zr}, nil
 }
 
 func (c compressReader) Read(p []byte) (n int, err error) {
@@ -64,34 +91,4 @@ func (c *compressReader) Close() error {
 		return fmt.Errorf("cannot close reader: %v", err)
 	}
 	return c.zr.Close()
-}
-
-func gzipMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ow := w
-
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
-			w.Header().Set("Content-Encoding", "gzip")
-			cw := newCompressWriter(w)
-			ow = cw
-			defer cw.Close()
-		}
-
-		contentEncoding := r.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
-			cr, err := newCompressReader(r.Body)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				logger.Log.Sugar().Debugln("cannot decompress body: %w", err)
-				return
-			}
-			r.Body = cr
-			defer cr.Close()
-		}
-
-		h.ServeHTTP(ow, r)
-	})
 }

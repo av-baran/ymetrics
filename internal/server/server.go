@@ -15,7 +15,7 @@ func New(s repository.Storager) *Server {
 	router := chi.NewRouter()
 	router.Use(
 		// middleware.Logger,
-		gzipMiddleware,
+		gzMiddleware,
 		logger.RequestLogMiddlware,
 		logger.ResponseLogMiddleware,
 	)
