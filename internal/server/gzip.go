@@ -2,14 +2,22 @@ package server
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/av-baran/ymetrics/internal/logger"
 )
 
 type compressWriter struct {
 	w  http.ResponseWriter
 	zw *gzip.Writer
+}
+
+type compressReader struct {
+	r  io.ReadCloser
+	zr *gzip.Reader
 }
 
 func newCompressWriter(w http.ResponseWriter) *compressWriter {
@@ -28,9 +36,6 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
-	}
 	c.w.WriteHeader(statusCode)
 }
 
@@ -38,15 +43,10 @@ func (c *compressWriter) Close() error {
 	return c.zw.Close()
 }
 
-type compressReader struct {
-	r  io.ReadCloser
-	zr *gzip.Reader
-}
-
 func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot create new gzip reader: %w", err)
 	}
 
 	return &compressReader{
@@ -61,7 +61,7 @@ func (c compressReader) Read(p []byte) (n int, err error) {
 
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
-		return err
+		return fmt.Errorf("cannot close reader: %v", err)
 	}
 	return c.zr.Close()
 }
@@ -85,6 +85,7 @@ func gzipMiddleware(h http.Handler) http.Handler {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
+				logger.Log.Sugar().Debugln("cannot decompress body: %w", err)
 				return
 			}
 			r.Body = cr

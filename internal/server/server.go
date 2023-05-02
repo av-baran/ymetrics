@@ -4,7 +4,6 @@ import (
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Server struct {
@@ -15,7 +14,7 @@ type Server struct {
 func New(s repository.Storager) *Server {
 	router := chi.NewRouter()
 	router.Use(
-		middleware.Logger,
+		// middleware.Logger,
 		gzipMiddleware,
 		logger.RequestLogMiddlware,
 		logger.ResponseLogMiddleware,
