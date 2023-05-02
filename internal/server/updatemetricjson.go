@@ -29,19 +29,19 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 	switch m.MType {
 	case "gauge":
 		if m.Value == nil {
-			http.Error(w, fmt.Sprintf("cannot update gauge: value in request is nil"), http.StatusBadRequest)
+			http.Error(w, "cannot update gauge: value is nil", http.StatusBadRequest)
 			return
 		}
 		s.Storage.SetGauge(m.ID, *m.Value)
 	case "counter":
 		if m.Delta == nil {
-			http.Error(w, fmt.Sprintf("cannot update counter: delta in request is nil"), http.StatusBadRequest)
+			http.Error(w, "cannot update counter: delta is nil", http.StatusBadRequest)
 			return
 		}
 		v := s.Storage.AddCounter(m.ID, *m.Delta)
 		m.Delta = &v
 	default:
-		http.Error(w, fmt.Sprintf("unknown metric type"), http.StatusNotImplemented)
+		http.Error(w, "unknown metric type", http.StatusNotImplemented)
 		return
 	}
 

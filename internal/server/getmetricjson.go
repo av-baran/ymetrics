@@ -42,7 +42,7 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		m.Delta = &d
 	default:
-		http.Error(w, fmt.Sprintf("unknown metric type"), http.StatusNotImplemented)
+		http.Error(w, "unknown metric type", http.StatusNotImplemented)
 		return
 	}
 
