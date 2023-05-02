@@ -26,11 +26,12 @@ func (s *MemStorage) SetGauge(name string, value float64) {
 	s.GaugeStor[name] = value
 }
 
-func (s *MemStorage) AddCounter(name string, value int64) {
+func (s *MemStorage) AddCounter(name string, value int64) int64 {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	v := s.CounterStor[name]
 	s.CounterStor[name] = v + value
+	return s.CounterStor[name]
 }
 
 func (s *MemStorage) GetGauge(name string) (float64, error) {

@@ -183,7 +183,7 @@ func TestServerUpdateJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"counter","delta":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"counter","delta":5}` + "\n",
+			expectedBody: `{"id":"some_name","type":"counter","delta":5}`,
 		},
 		{
 			name:         "second counter POST - OK",
@@ -191,7 +191,7 @@ func TestServerUpdateJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"counter","delta":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}`,
 		},
 		{
 			name:         "gauge POST - OK",
@@ -199,7 +199,7 @@ func TestServerUpdateJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"gauge","value":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}`,
 		},
 		{
 			name:         "gauge POST - unknown type",
@@ -238,7 +238,7 @@ func TestServerGetJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"gauge","value":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}`,
 		},
 		{
 			name:         "gauge GET - OK",
@@ -246,7 +246,7 @@ func TestServerGetJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"gauge"}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"gauge","value":5}` + "\n",
+			expectedBody: `{"id":"some_name","type":"gauge","value":5}`,
 		},
 		{
 			name:         "counter POST - OK",
@@ -254,7 +254,7 @@ func TestServerGetJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"counter","delta":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"counter","delta":5}` + "\n",
+			expectedBody: `{"id":"some_name","type":"counter","delta":5}`,
 		},
 		{
 			name:         "second counter POST - OK",
@@ -262,7 +262,7 @@ func TestServerGetJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"counter","delta":5}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}`,
 		},
 		{
 			name:         "counter GET - OK",
@@ -270,7 +270,7 @@ func TestServerGetJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"counter"}`,
 			expectedCode: http.StatusOK,
-			expectedBody: `{"id":"some_name","type":"counter","delta":10}` + "\n",
+			expectedBody: `{"id":"some_name","type":"counter","delta":10}`,
 		},
 	}
 	for _, v := range tests {

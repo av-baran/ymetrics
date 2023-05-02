@@ -2,7 +2,7 @@ package repository
 
 type Storager interface {
 	SetGauge(string, float64)
-	AddCounter(string, int64)
+	AddCounter(string, int64) int64
 
 	GetGauge(string) (float64, error)
 	GetCounter(string) (int64, error)
