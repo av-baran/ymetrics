@@ -213,11 +213,8 @@ func (a *Agent) dump() error {
 	return nil
 }
 
+// FIXME удалить metric.Metric или заменить его на metric.Metrics
 func (a *Agent) sendMetricJSON(m metric.Metric) error {
-	var buf bytes.Buffer
-
-	encoder := json.NewEncoder(&buf)
-
 	mNew := &metric.Metrics{
 		ID:    m.Name,
 		MType: string(m.Type),
@@ -242,6 +239,8 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 		return errors.New("type not implemented")
 	}
 
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
 	encoder.Encode(&mNew)
 
 	gzBuf := bytes.NewBuffer(nil)
