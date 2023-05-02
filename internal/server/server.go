@@ -27,4 +27,6 @@ func (s *Server) registerRoutes() {
 
 	s.Router.Post("/update/", logger.ResponseLogger(logger.RequestLogger(s.UpdateMetricJSONHandler)))
 	s.Router.Post("/value/", logger.ResponseLogger(logger.RequestLogger(s.GetMetricJSONHandler)))
+	s.Router.Post("/update", logger.ResponseLogger(logger.RequestLogger(s.UpdateMetricJSONHandler)))
+	s.Router.Post("/value", logger.ResponseLogger(logger.RequestLogger(s.GetMetricJSONHandler)))
 }
