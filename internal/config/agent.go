@@ -8,8 +8,11 @@ import (
 )
 
 const (
-	defaultProtocol = "http://"
-	RequestTimeout  = time.Second * 1
+	defaultProtocol       = "http://"
+	defaultServerAddress  = "localhost:8080"
+	defaultPollInterval   = 3
+	defautlReportInterval = 5
+	RequestTimeout        = time.Second * 1
 )
 
 type AgentConfig struct {
@@ -43,9 +46,9 @@ func NewAgentConfig() *AgentConfig {
 }
 
 func parseFlags(cfg *AgentConfig) {
-	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "server address and port to listen")
-	flag.IntVar(&cfg.ReportInterval, "r", 3, "report interval in seconds")
-	flag.IntVar(&cfg.PollInterval, "p", 1, "poll interval in seconds")
+	flag.StringVar(&cfg.ServerAddress, "a", defaultServerAddress, "server address and port to listen")
+	flag.IntVar(&cfg.ReportInterval, "r", defautlReportInterval, "report interval in seconds")
+	flag.IntVar(&cfg.PollInterval, "p", defaultPollInterval, "poll interval in seconds")
 
 	flag.Parse()
 }

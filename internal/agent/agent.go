@@ -189,7 +189,6 @@ func (a *Agent) collectMetrics() {
 			Value: m.TotalAlloc,
 			Type:  metric.GaugeType,
 		},
-
 		{
 			Name:  "PollCount",
 			Value: a.pollCount,
@@ -253,11 +252,19 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 
 	switch m.Type {
 	case metric.GaugeType:
-		v, _ := m.Value.(float64)
+		v, err := gauge2float64(m.Value)
+		if err != nil {
+			return fmt.Errorf("error converting metric value to float: %w", err)
+		}
 		mNew.Value = &v
+		log.Printf("metric name: %v, type: %v, val: %v", mNew.ID, mNew.MType, *mNew.Value)
 	case metric.CounterType:
-		v, _ := m.Value.(int64)
+		v, ok := m.Value.(int64)
+		if !ok {
+			return fmt.Errorf("error converting metric value to int")
+		}
 		mNew.Delta = &v
+		log.Printf("metric name: %v, type: %v, delta: %v", mNew.ID, mNew.MType, *mNew.Delta)
 	default:
 		return errors.New("type not implemented")
 	}
@@ -278,4 +285,21 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 	}
 
 	return nil
+}
+
+//FIXME
+func gauge2float64(v interface{}) (float64, error) {
+	var res float64
+
+	switch i := v.(type) {
+	case uint32:
+		res = float64(i)
+	case uint64:
+		res = float64(i)
+	case float64:
+		res = float64(i)
+	default:
+		return 0, fmt.Errorf("cannot convert to float64, type is not implemented")
+	}
+	return res, nil
 }
