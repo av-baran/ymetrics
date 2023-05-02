@@ -21,7 +21,7 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	log.Printf("update body: %+v", m)
+	log.Printf("update body: %+v, value: %v, delta: %v", m, *m.Value, *m.Delta)
 
 	switch m.MType {
 	case string(metric.CounterType):
@@ -72,5 +72,5 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("get resp body: %+v", m)
+	log.Printf("update resp body: %+v, value: %v, delta: %v", m, *m.Value, *m.Delta)
 }
