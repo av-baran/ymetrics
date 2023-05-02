@@ -25,7 +25,9 @@ var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 var collectedMetrics = []metric.Metric{}
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
-	return &Agent{cfg, 0, resty.New()}
+	a := &Agent{cfg, 0, resty.New()}
+	a.client.SetTimeout(config.RequestTimeout)
+	return a
 }
 
 func (a *Agent) Run(cfg *config.AgentConfig) {
@@ -219,7 +221,7 @@ func (a *Agent) sendMetric(m metric.Metric) error {
 		return errors.New("type not implemented")
 	}
 
-	resp, err := a.client.SetTimeout(time.Second*1).R().
+	resp, err := a.client.R().
 		SetHeader("Content-Type", "text/plain").
 		SetPathParams(map[string]string{
 			"name":  m.Name,
@@ -261,7 +263,6 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 	}
 
 	encoder.Encode(&mNew)
-	log.Printf("%+v", mNew)
 
 	resp, err := a.client.R().
 		SetHeader("Content-Type", "application/json").

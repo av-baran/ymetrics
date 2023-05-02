@@ -9,6 +9,7 @@ import (
 
 const (
 	defaultProtocol = "http://"
+	RequestTimeout  = time.Second * 1
 )
 
 type AgentConfig struct {
