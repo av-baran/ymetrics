@@ -43,8 +43,8 @@ func NewAgentConfig() *AgentConfig {
 
 func parseFlags(cfg *AgentConfig) {
 	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "server address and port to listen")
-	flag.IntVar(&cfg.ReportInterval, "r", 10, "report interval in seconds")
-	flag.IntVar(&cfg.PollInterval, "p", 2, "poll interval in seconds")
+	flag.IntVar(&cfg.ReportInterval, "r", 3, "report interval in seconds")
+	flag.IntVar(&cfg.PollInterval, "p", 1, "poll interval in seconds")
 
 	flag.Parse()
 }
