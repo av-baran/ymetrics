@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/metric"
@@ -13,7 +13,7 @@ import (
 func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	readBody, err := ioutil.ReadAll(r.Body)
+	readBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("cannot read request body: %s", err), http.StatusBadRequest)
 		return
@@ -54,6 +54,6 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(respBody)
 
-	r.Body = ioutil.NopCloser(bytes.NewReader(readBody))
+	r.Body = io.NopCloser(bytes.NewReader(readBody))
 	w.WriteHeader(http.StatusOK)
 }
