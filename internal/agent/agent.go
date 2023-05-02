@@ -219,7 +219,7 @@ func (a *Agent) sendMetric(m metric.Metric) error {
 		return errors.New("type not implemented")
 	}
 
-	resp, err := a.client.R().
+	resp, err := a.client.SetTimeout(time.Second*1).R().
 		SetHeader("Content-Type", "text/plain").
 		SetPathParams(map[string]string{
 			"name":  m.Name,

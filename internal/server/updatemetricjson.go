@@ -38,7 +38,8 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 			http.Error(w, fmt.Sprintf("cannot update counter: delta in request is nil"), http.StatusBadRequest)
 			return
 		}
-		*m.Delta = s.Storage.AddCounter(m.ID, *m.Delta)
+		v := s.Storage.AddCounter(m.ID, *m.Delta)
+		m.Delta = &v
 	default:
 		http.Error(w, fmt.Sprintf("unknown metric type"), http.StatusNotImplemented)
 		return
