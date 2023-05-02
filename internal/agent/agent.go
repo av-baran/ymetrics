@@ -213,34 +213,6 @@ func (a *Agent) dump() error {
 	return nil
 }
 
-func (a *Agent) sendMetric(m metric.Metric) error {
-	switch m.Type {
-	case metric.GaugeType, metric.CounterType:
-		m.Value = fmt.Sprintf("%v", m.Value)
-	default:
-		return errors.New("type not implemented")
-	}
-
-	resp, err := a.client.R().
-		SetHeader("Content-Type", "text/plain").
-		SetPathParams(map[string]string{
-			"name":  m.Name,
-			"type":  string(m.Type),
-			"value": m.Value.(string),
-		}).
-		Post(a.cfg.GetURL() + "/update/{type}/{name}/{value}")
-
-	if err != nil {
-		return fmt.Errorf("cannot send metric: %w", err)
-	}
-
-	if resp.StatusCode() >= 300 {
-		return fmt.Errorf("remote server respond with no 200 status code: %v", resp.StatusCode())
-	}
-
-	return nil
-}
-
 func (a *Agent) sendMetricJSON(m metric.Metric) error {
 	var buf bytes.Buffer
 

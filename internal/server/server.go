@@ -14,7 +14,6 @@ type Server struct {
 func New(s repository.Storager) *Server {
 	router := chi.NewRouter()
 	router.Use(
-		// middleware.Logger,
 		gzMiddleware,
 		logger.RequestLogMiddlware,
 		logger.ResponseLogMiddleware,
