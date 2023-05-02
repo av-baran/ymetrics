@@ -14,17 +14,22 @@ type Server struct {
 
 func New(s repository.Storager) *Server {
 	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	router.Use(
+		middleware.Logger,
+		gzipMiddleware,
+		logger.RequestLogMiddlware,
+		logger.ResponseLogMiddleware,
+	)
 	server := &Server{Storage: s, Router: router}
 	server.registerRoutes()
 	return server
 }
 
 func (s *Server) registerRoutes() {
-	s.Router.Post("/update/{type}/{name}/{value}", logger.ResponseLogger(logger.RequestLogger(s.UpdateMetricHandler)))
-	s.Router.Get("/value/{type}/{name}", logger.ResponseLogger(logger.RequestLogger(s.GetMetricHandler)))
-	s.Router.Get("/", logger.ResponseLogger(logger.RequestLogger(s.GetAllMetricsHandler)))
+	s.Router.Post("/update/{type}/{name}/{value}", s.UpdateMetricHandler)
+	s.Router.Get("/value/{type}/{name}", s.GetMetricHandler)
+	s.Router.Get("/", s.GetAllMetricsHandler)
 
-	s.Router.Post("/update/", logger.ResponseLogger(logger.RequestLogger(s.UpdateMetricJSONHandler)))
-	s.Router.Post("/value/", logger.ResponseLogger(logger.RequestLogger(s.GetMetricJSONHandler)))
+	s.Router.Post("/update/", s.UpdateMetricJSONHandler)
+	s.Router.Post("/value/", s.GetMetricJSONHandler)
 }

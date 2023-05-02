@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -271,9 +272,19 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 
 	encoder.Encode(&mNew)
 
+	gzBuf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(gzBuf)
+	if _, err := zb.Write(buf.Bytes()); err != nil {
+		return fmt.Errorf("error while compressing body")
+	}
+	if err := zb.Close(); err != nil {
+		return fmt.Errorf("error while closing gz buffer")
+	}
+
 	resp, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(buf.Bytes()).
+		SetHeader("Content-Encoding", "gzip").
+		SetBody(gzBuf.Bytes()).
 		Post(a.cfg.GetURL() + "/update/")
 
 	if err != nil {
@@ -287,7 +298,6 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 	return nil
 }
 
-//FIXME
 func gauge2float64(v interface{}) (float64, error) {
 	var res float64
 

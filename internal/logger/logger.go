@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -38,7 +37,7 @@ func Init(level string) error {
 	return nil
 }
 
-func RequestLogger(h http.HandlerFunc) http.Handler {
+func RequestLogMiddlware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		uri := r.RequestURI
@@ -56,7 +55,7 @@ func RequestLogger(h http.HandlerFunc) http.Handler {
 	})
 }
 
-func ResponseLogger(h http.Handler) http.HandlerFunc {
+func ResponseLogMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		respLogger := logResponseWriter{
 			ResponseWriter: w,
@@ -78,7 +77,6 @@ func (r *logResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (r *logResponseWriter) WriteHeader(statusCode int) {
-	log.Printf("logging statusCode: %v", statusCode)
 	r.ResponseWriter.Header().Set("Content-Type", "application/json")
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
