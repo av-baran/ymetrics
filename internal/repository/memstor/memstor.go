@@ -1,7 +1,6 @@
 package memstor
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/av-baran/ymetrics/pkg/interrors"
@@ -34,25 +33,25 @@ func (s *MemStorage) AddCounter(name string, value int64) {
 	s.CounterStor[name] = v + value
 }
 
-func (s *MemStorage) GetGauge(name string) (string, error) {
+func (s *MemStorage) GetGauge(name string) (float64, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	v, ok := s.GaugeStor[name]
 
 	if !ok {
-		return "", interrors.ErrMetricNotFound
+		return v, interrors.ErrMetricNotFound
 	}
-	return fmt.Sprintf("%v", v), nil
+	return v, nil
 }
 
-func (s *MemStorage) GetCounter(name string) (string, error) {
+func (s *MemStorage) GetCounter(name string) (int64, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	v, ok := s.CounterStor[name]
 	if !ok {
-		return "", interrors.ErrMetricNotFound
+		return v, interrors.ErrMetricNotFound
 	}
-	return fmt.Sprintf("%v", v), nil
+	return v, nil
 }
 
 func (s *MemStorage) GetAllGauge() map[string]float64 {

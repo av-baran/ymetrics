@@ -1,7 +1,6 @@
 package memstor
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,10 +33,10 @@ func TestMemStorage_SetGetGauge(t *testing.T) {
 			storage.SetGauge(tt.args.name, tt.args.value)
 			got, err := storage.GetGauge(tt.args.name)
 			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
+			assert.Equal(t, tt.args.value, got)
 			got1, err := storage.GetGauge("unknown metric")
 			assert.Error(t, err)
-			assert.Equal(t, got1, "")
+			assert.Equal(t, got1, float64(0))
 		})
 	}
 }
@@ -52,7 +51,7 @@ func TestMemStorage_SetGetCounter(t *testing.T) {
 		args arguments
 	}{
 		{
-			name: "test gauge",
+			name: "test counter",
 			args: arguments{
 				name:  "newname",
 				value: int64(10),
@@ -65,14 +64,14 @@ func TestMemStorage_SetGetCounter(t *testing.T) {
 			storage.AddCounter(tt.args.name, tt.args.value)
 			got, err := storage.GetCounter(tt.args.name)
 			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
-			got1, err := storage.GetGauge("unknown metric")
+			assert.Equal(t, tt.args.value, got)
+			got1, err := storage.GetCounter("unknown metric")
 			assert.Error(t, err)
-			assert.Equal(t, got1, "")
+			assert.Equal(t, got1, int64(0))
 			storage.AddCounter(tt.args.name, 1)
 			got2, err := storage.GetCounter(tt.args.name)
 			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value+1), got2)
+			assert.Equal(t, tt.args.value+1, got2)
 		})
 	}
 }

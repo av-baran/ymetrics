@@ -19,14 +19,18 @@ func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		value, err := s.Storage.GetGauge(name)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("cannot get gauge metric: %s", err), getErrorCode(err))
+			return
 		}
-		w.Write([]byte(value))
+		out := fmt.Sprintf("%v", value)
+		w.Write([]byte(out))
 	case metric.CounterType:
 		value, err := s.Storage.GetCounter(name)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("cannot get gauge metric: %s", err), getErrorCode(err))
+			return
 		}
-		w.Write([]byte(value))
+		out := fmt.Sprintf("%v", value)
+		w.Write([]byte(out))
 	default:
 		http.Error(w, "unknown metric type", http.StatusBadRequest)
 	}
