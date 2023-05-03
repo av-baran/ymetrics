@@ -42,7 +42,7 @@ func NewServerConfig() *ServerConfig {
 	}
 
 	if p, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
-		cfg.LogLevel = p
+		cfg.FileStoragePath = p
 	}
 
 	if l, ok := os.LookupEnv("RESTORE"); ok {
