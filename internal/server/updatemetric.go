@@ -12,23 +12,27 @@ import (
 func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
-	name := chi.URLParam(r, "name")
-	mType := metric.Type(chi.URLParam(r, "type"))
+	m := &metric.Metrics{
+		ID:    chi.URLParam(r, "name"),
+		MType: chi.URLParam(r, "type"),
+	}
 	value := chi.URLParam(r, "value")
 
-	switch mType {
+	switch m.MType {
 	case metric.GaugeType:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), http.StatusBadRequest)
 		}
-		s.Storage.SetGauge(name, v)
+		m.Value = &v
+		s.Storage.SetMetric(*m)
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
 		}
-		s.Storage.AddCounter(name, v)
+		m.Delta = &v
+		s.Storage.AddCounter(m.ID, *m.Delta)
 	default:
 		http.Error(w, "unknown metric type", http.StatusNotImplemented)
 		return

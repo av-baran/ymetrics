@@ -15,14 +15,21 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-type Agent struct {
-	Cfg       *AgentConfig
-	pollCount int64
-	client    *resty.Client
-}
+type (
+	Agent struct {
+		Cfg       *AgentConfig
+		pollCount int64
+		client    *resty.Client
+	}
+	Metric struct {
+		Name  string
+		Value interface{}
+		Type  string
+	}
+)
 
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-var collectedMetrics = []metric.Metric{}
+var collectedMetrics = []Metric{}
 
 func NewAgent(cfg *AgentConfig) *Agent {
 	a := &Agent{cfg, 0, resty.New()}
@@ -48,12 +55,91 @@ func (a *Agent) Run() {
 	}
 }
 
+func (a *Agent) dump() error {
+	defer func() { a.pollCount = 0 }()
+	for _, m := range collectedMetrics {
+		if err := a.sendMetricJSON(m); err != nil {
+			return fmt.Errorf("cannot send metric: %w", err)
+		}
+	}
+	return nil
+}
+
+func (a *Agent) sendMetricJSON(m Metric) error {
+	mNew := &metric.Metrics{
+		ID:    m.Name,
+		MType: string(m.Type),
+	}
+
+	switch m.Type {
+	case metric.GaugeType:
+		v, err := gauge2float64(m.Value)
+		if err != nil {
+			return fmt.Errorf("error converting metric value to float: %w", err)
+		}
+		mNew.Value = &v
+	case metric.CounterType:
+		v, ok := m.Value.(int64)
+		if !ok {
+			return fmt.Errorf("error converting metric value to int")
+		}
+		mNew.Delta = &v
+	default:
+		return errors.New("type not implemented")
+	}
+
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.Encode(&mNew)
+
+	gzBuf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(gzBuf)
+	if _, err := zb.Write(buf.Bytes()); err != nil {
+		return fmt.Errorf("error while compressing body")
+	}
+	if err := zb.Close(); err != nil {
+		return fmt.Errorf("error while closing gz buffer")
+	}
+
+	resp, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Content-Encoding", "gzip").
+		SetBody(gzBuf.Bytes()).
+		Post(a.Cfg.getURL() + "/update/")
+
+	if err != nil {
+		return fmt.Errorf("cannot sent request; resty error: %w", err)
+	}
+
+	if resp.StatusCode() >= 300 {
+		return fmt.Errorf("remote server respond with no 200 status code: %v", resp.StatusCode())
+	}
+
+	return nil
+}
+
+func gauge2float64(v interface{}) (float64, error) {
+	var res float64
+
+	switch i := v.(type) {
+	case uint32:
+		res = float64(i)
+	case uint64:
+		res = float64(i)
+	case float64:
+		res = float64(i)
+	default:
+		return 0, fmt.Errorf("cannot convert to float64, type is not implemented")
+	}
+	return res, nil
+}
+
 func (a *Agent) collectMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	a.pollCount++
 
-	collectedMetrics = []metric.Metric{
+	collectedMetrics = []Metric{
 		{
 			Name:  "Alloc",
 			Value: m.Alloc,
@@ -200,86 +286,4 @@ func (a *Agent) collectMetrics() {
 			Type:  metric.GaugeType,
 		},
 	}
-}
-
-func (a *Agent) dump() error {
-	defer func() { a.pollCount = 0 }()
-	for _, m := range collectedMetrics {
-		if err := a.sendMetricJSON(m); err != nil {
-			return fmt.Errorf("cannot send metric: %w", err)
-		}
-	}
-	return nil
-}
-
-// FIXME удалить metric.Metric или заменить его на metric.Metrics
-func (a *Agent) sendMetricJSON(m metric.Metric) error {
-	mNew := &metric.Metrics{
-		ID:    m.Name,
-		MType: string(m.Type),
-	}
-
-	switch m.Type {
-	case metric.GaugeType:
-		v, err := gauge2float64(m.Value)
-		if err != nil {
-			return fmt.Errorf("error converting metric value to float: %w", err)
-		}
-		mNew.Value = &v
-		log.Printf("metric name: %v, type: %v, val: %v", mNew.ID, mNew.MType, *mNew.Value)
-	case metric.CounterType:
-		v, ok := m.Value.(int64)
-		if !ok {
-			return fmt.Errorf("error converting metric value to int")
-		}
-		mNew.Delta = &v
-		log.Printf("metric name: %v, type: %v, delta: %v", mNew.ID, mNew.MType, *mNew.Delta)
-	default:
-		return errors.New("type not implemented")
-	}
-
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	encoder.Encode(&mNew)
-
-	gzBuf := bytes.NewBuffer(nil)
-	zb := gzip.NewWriter(gzBuf)
-	if _, err := zb.Write(buf.Bytes()); err != nil {
-		return fmt.Errorf("error while compressing body")
-	}
-	if err := zb.Close(); err != nil {
-		return fmt.Errorf("error while closing gz buffer")
-	}
-
-	resp, err := a.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip").
-		SetBody(gzBuf.Bytes()).
-		Post(a.Cfg.getURL() + "/update/")
-
-	if err != nil {
-		return fmt.Errorf("cannot sent request; resty error: %w", err)
-	}
-
-	if resp.StatusCode() >= 300 {
-		return fmt.Errorf("remote server respond with no 200 status code: %v", resp.StatusCode())
-	}
-
-	return nil
-}
-
-func gauge2float64(v interface{}) (float64, error) {
-	var res float64
-
-	switch i := v.(type) {
-	case uint32:
-		res = float64(i)
-	case uint64:
-		res = float64(i)
-	case float64:
-		res = float64(i)
-	default:
-		return 0, fmt.Errorf("cannot convert to float64, type is not implemented")
-	}
-	return res, nil
 }

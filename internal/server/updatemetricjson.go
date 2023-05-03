@@ -20,39 +20,32 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 	}
 	r.Body.Close()
 
-	m := metric.Metrics{}
-	if err := json.Unmarshal(readBody, &m); err != nil {
+	m := &metric.Metrics{}
+	if err := json.Unmarshal(readBody, m); err != nil {
 		http.Error(w, fmt.Sprintf("cannot unmarshal request body: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	switch m.MType {
-	case "gauge":
-		if m.Value == nil {
-			http.Error(w, "cannot update gauge: value is nil", http.StatusBadRequest)
-			return
-		}
-		s.Storage.SetGauge(m.ID, *m.Value)
-	case "counter":
-		if m.Delta == nil {
-			http.Error(w, "cannot update counter: delta is nil", http.StatusBadRequest)
-			return
-		}
-		v := s.Storage.AddCounter(m.ID, *m.Delta)
-		m.Delta = &v
-	default:
-		http.Error(w, "unknown metric type", http.StatusNotImplemented)
+	if err := s.Storage.SetMetric(*m); err != nil {
+		http.Error(w, fmt.Sprintf("cannot set metric: %s", err), http.StatusNotFound)
 		return
 	}
 
-	respBody, err := json.Marshal(&m)
+	resM := &metric.Metrics{
+		ID:    m.ID,
+		MType: m.MType,
+	}
+	if err := s.Storage.GetMetric(resM); err != nil {
+		http.Error(w, fmt.Sprintf("cannot get metric: %s", err), http.StatusNotFound)
+		return
+	}
+
+	respBody, err := json.Marshal(&resM)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("cannot marshal response body: %s", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Write(respBody)
-
 	r.Body = io.NopCloser(bytes.NewReader(readBody))
-	w.WriteHeader(http.StatusOK)
 }

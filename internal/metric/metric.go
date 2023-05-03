@@ -3,16 +3,10 @@ package metric
 type Type string
 
 const (
-	GaugeType   = Type("gauge")
-	CounterType = Type("counter")
-	UnknownType = Type("unknown")
+	GaugeType   = "gauge"
+	CounterType = "counter"
+	UnknownType = "unknown"
 )
-
-type Metric struct {
-	Name  string
-	Value interface{}
-	Type  Type
-}
 
 type Gauge struct {
 	Name  string
