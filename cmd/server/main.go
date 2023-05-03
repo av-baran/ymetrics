@@ -28,7 +28,7 @@ func main() {
 				logger.Log.Sugar().Debugln("error while restoring from file: %s", err.Error())
 			}
 		} else {
-			logger.Log.Sugar().Debugln("backoup file is not exist: %s", err.Error())
+			logger.Log.Sugar().Debugln("backup file is not exist: %s", err.Error())
 		}
 	}
 
