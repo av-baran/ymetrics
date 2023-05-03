@@ -217,7 +217,7 @@ func TestServerUpdateJSON(t *testing.T) {
 			method:       http.MethodPost,
 			body:         `{"id":"some_name","type":"unknown","value":5}`,
 			expectedCode: http.StatusNotImplemented,
-			expectedBody: "unknown metric type" + "\n",
+			expectedBody: "cannot set metric: invalid metric type" + "\n",
 		},
 	}
 	for _, v := range tests {
