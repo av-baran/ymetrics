@@ -60,7 +60,7 @@ func NewServerConfig() *ServerConfig {
 func parseFlags(cfg *ServerConfig) {
 	flag.StringVar(&cfg.ServerAddress, "a", defaultServerAddress, "server address and port to listen")
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "log level")
-	flag.IntVar(&cfg.StoreInterval, "i", defaultStoreInterval, "restore interval")
+	flag.IntVar(&cfg.StoreInterval, "i", defaultStoreInterval, "save to file interval")
 	flag.StringVar(&cfg.FileStoragePath, "f", defaultStoragePath, "file storage path")
 	flag.BoolVar(&cfg.Restore, "r", defaultRestore, "restore from file")
 

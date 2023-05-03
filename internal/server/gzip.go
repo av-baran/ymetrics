@@ -88,7 +88,7 @@ func (c compressReader) Read(p []byte) (n int, err error) {
 
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
-		return fmt.Errorf("cannot close reader: %v", err)
+		return fmt.Errorf("cannot close reader: %w", err)
 	}
 	return c.zr.Close()
 }

@@ -11,19 +11,19 @@ import (
 func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
-	counters := s.Storage.GetAllCounter()
-	gauges := s.Storage.GetAllGauge()
+	metrics := s.Storage.GetAllMetrics()
+	strMetrics := make(map[string]string, len(metrics))
 
-	metrics := make(map[string]string, len(counters)+len(gauges))
-
-	for k, v := range counters {
-		metrics[k] = fmt.Sprintf("%v", v)
+	for _, v := range metrics {
+		switch v.MType {
+		case "counter":
+			strMetrics[v.ID] = fmt.Sprintf("%v", v.Delta)
+		case "gauge":
+			strMetrics[v.ID] = fmt.Sprintf("%v", v.Value)
+		}
 	}
-	for k, v := range gauges {
-		metrics[k] = fmt.Sprintf("%v", v)
-	}
 
-	if err := writeTemplate(w, metrics); err != nil {
+	if err := writeTemplate(w, strMetrics); err != nil {
 		http.Error(w, fmt.Sprintf("can't render metrics page: %s", err), http.StatusInternalServerError)
 	}
 }
