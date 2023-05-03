@@ -11,13 +11,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/go-resty/resty/v2"
 )
 
 type Agent struct {
-	cfg       *config.AgentConfig
+	Cfg       *AgentConfig
 	pollCount int64
 	client    *resty.Client
 }
@@ -25,16 +24,16 @@ type Agent struct {
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 var collectedMetrics = []metric.Metric{}
 
-func NewAgent(cfg *config.AgentConfig) *Agent {
+func NewAgent(cfg *AgentConfig) *Agent {
 	a := &Agent{cfg, 0, resty.New()}
-	a.client.SetTimeout(config.RequestTimeout)
+	a.client.SetTimeout(RequestTimeout)
 	return a
 }
 
-func (a *Agent) Run(cfg *config.AgentConfig) {
-	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
+func (a *Agent) Run() {
+	pollTicker := time.NewTicker(a.Cfg.getPollInterval())
 	defer pollTicker.Stop()
-	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
+	reportTicker := time.NewTicker(a.Cfg.getReportInterval())
 	defer reportTicker.Stop()
 
 	for {
@@ -256,7 +255,7 @@ func (a *Agent) sendMetricJSON(m metric.Metric) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetBody(gzBuf.Bytes()).
-		Post(a.cfg.GetURL() + "/update/")
+		Post(a.Cfg.getURL() + "/update/")
 
 	if err != nil {
 		return fmt.Errorf("cannot sent request; resty error: %w", err)

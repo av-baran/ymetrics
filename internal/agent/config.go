@@ -1,4 +1,4 @@
-package config
+package agent
 
 import (
 	"flag"
@@ -53,14 +53,14 @@ func parseFlags(cfg *AgentConfig) {
 	flag.Parse()
 }
 
-func (a *AgentConfig) GetURL() string {
+func (a *AgentConfig) getURL() string {
 	return defaultProtocol + a.ServerAddress
 }
 
-func (a *AgentConfig) GetPollInterval() time.Duration {
+func (a *AgentConfig) getPollInterval() time.Duration {
 	return time.Duration(a.PollInterval) * time.Second
 }
 
-func (a *AgentConfig) GetReportInterval() time.Duration {
+func (a *AgentConfig) getReportInterval() time.Duration {
 	return time.Duration(a.ReportInterval) * time.Second
 }

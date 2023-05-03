@@ -9,16 +9,17 @@ import (
 type Server struct {
 	Storage repository.Storager
 	Router  *chi.Mux
+	Cfg     *ServerConfig
 }
 
-func New(s repository.Storager) *Server {
+func New(s repository.Storager, cfg *ServerConfig) *Server {
 	router := chi.NewRouter()
 	router.Use(
 		gzMiddleware,
 		logger.RequestLogMiddlware,
 		logger.ResponseLogMiddleware,
 	)
-	server := &Server{Storage: s, Router: router}
+	server := &Server{Storage: s, Router: router, Cfg: cfg}
 	server.registerRoutes()
 	return server
 }

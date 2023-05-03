@@ -6,14 +6,12 @@ import (
 	"syscall"
 
 	"github.com/av-baran/ymetrics/internal/agent"
-	"github.com/av-baran/ymetrics/internal/config"
 )
 
 func main() {
-	cfg := config.NewAgentConfig()
-
+	cfg := agent.NewAgentConfig()
 	a := agent.NewAgent(cfg)
-	go a.Run(cfg)
+	go a.Run()
 
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)

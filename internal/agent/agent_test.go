@@ -7,10 +7,17 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	defaultCfg = &AgentConfig{
+		ServerAddress:  "localhost:8080",
+		PollInterval:   3,
+		ReportInterval: 5,
+	}
 )
 
 func Test_collectMetrics(t *testing.T) {
@@ -55,8 +62,7 @@ func Test_collectMetrics(t *testing.T) {
 		wantMetricNames[i] = k
 		i++
 	}
-	cfg := config.NewAgentConfig()
-	a := NewAgent(cfg)
+	a := NewAgent(defaultCfg)
 
 	a.collectMetrics()
 	gotMetricNames := make([]string, len(collectedMetrics))
@@ -98,13 +104,13 @@ func Test_sendMetricOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -148,13 +154,13 @@ func Test_sendMetricErr(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -169,14 +175,14 @@ func TestRun(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	okAgent := NewAgent(cfg)
-	go okAgent.Run(cfg)
+	okAgent := NewAgent(testCfg)
+	go okAgent.Run()
 }
 
 func Test_dumpOk(t *testing.T) {
@@ -184,13 +190,13 @@ func Test_dumpOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	err := a.dump()
 	assert.NoError(t, err)
@@ -201,13 +207,13 @@ func Test_dumpErr(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	err := a.dump()
 	assert.Error(t, err)

@@ -13,14 +13,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	defaultCfg = &ServerConfig{
+		ServerAddress:   "localhost:8080",
+		LogLevel:        "debug",
+		StoreInterval:   300,
+		FileStoragePath: "/tmp/metrics-db.json",
+		Restore:         true,
+	}
+)
+
 func TestNew(t *testing.T) {
 	s := memstor.New()
-	assert.NotEmpty(t, New(s))
+	assert.NotEmpty(t, New(s, defaultCfg))
 }
 
 func TestServer(t *testing.T) {
 	repo := memstor.New()
-	serv := New(repo)
+	serv := New(repo, defaultCfg)
 	ts := httptest.NewServer(serv.Router)
 	defer ts.Close()
 
@@ -82,7 +92,7 @@ func TestServer(t *testing.T) {
 
 func TestServerGetValue(t *testing.T) {
 	repo := memstor.New()
-	serv := New(repo)
+	serv := New(repo, defaultCfg)
 	ts := httptest.NewServer(serv.Router)
 	defer ts.Close()
 
@@ -139,7 +149,7 @@ func TestServerGetValue(t *testing.T) {
 
 func TestServerGetAll(t *testing.T) {
 	repo := memstor.New()
-	serv := New(repo)
+	serv := New(repo, defaultCfg)
 	ts := httptest.NewServer(serv.Router)
 	defer ts.Close()
 
@@ -165,7 +175,7 @@ func TestServerGetAll(t *testing.T) {
 
 func TestServerUpdateJSON(t *testing.T) {
 	repo := memstor.New()
-	serv := New(repo)
+	serv := New(repo, defaultCfg)
 	ts := httptest.NewServer(serv.Router)
 	defer ts.Close()
 
@@ -220,7 +230,7 @@ func TestServerUpdateJSON(t *testing.T) {
 
 func TestServerGetJSON(t *testing.T) {
 	repo := memstor.New()
-	serv := New(repo)
+	serv := New(repo, defaultCfg)
 	ts := httptest.NewServer(serv.Router)
 	defer ts.Close()
 
