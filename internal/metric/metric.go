@@ -8,16 +8,6 @@ const (
 	UnknownType = "unknown"
 )
 
-type Gauge struct {
-	Name  string
-	Value float64
-}
-
-type Counter struct {
-	Name  string
-	Value int64
-}
-
 type Metrics struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`

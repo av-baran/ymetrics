@@ -21,41 +21,6 @@ func New() *MemStorage {
 	}
 }
 
-func (s *MemStorage) SetGauge(name string, value float64) {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	s.GaugeStor[name] = value
-}
-
-func (s *MemStorage) AddCounter(name string, value int64) int64 {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	v := s.CounterStor[name]
-	s.CounterStor[name] = v + value
-	return s.CounterStor[name]
-}
-
-func (s *MemStorage) GetGauge(name string) (float64, error) {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	v, ok := s.GaugeStor[name]
-
-	if !ok {
-		return v, interrors.ErrMetricNotFound
-	}
-	return v, nil
-}
-
-func (s *MemStorage) GetCounter(name string) (int64, error) {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	v, ok := s.CounterStor[name]
-	if !ok {
-		return v, interrors.ErrMetricNotFound
-	}
-	return v, nil
-}
-
 func (s *MemStorage) SetMetric(m metric.Metrics) error {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
@@ -127,4 +92,12 @@ func (s *MemStorage) GetAllMetrics() []metric.Metrics {
 		res = append(res, *m)
 	}
 	return res
+}
+
+func (s *MemStorage) AddCounter(name string, value int64) int64 {
+	memStorageSync.Lock()
+	defer memStorageSync.Unlock()
+	v := s.CounterStor[name]
+	s.CounterStor[name] = v + value
+	return s.CounterStor[name]
 }

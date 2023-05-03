@@ -40,5 +40,4 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBody)
 
 	r.Body = io.NopCloser(bytes.NewReader(readBody))
-	w.WriteHeader(http.StatusOK)
 }
