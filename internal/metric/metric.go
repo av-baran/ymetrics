@@ -1,7 +1,5 @@
 package metric
 
-type Type string
-
 const (
 	GaugeType   = "gauge"
 	CounterType = "counter"

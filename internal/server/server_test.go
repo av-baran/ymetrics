@@ -86,7 +86,7 @@ func TestServer(t *testing.T) {
 	for _, v := range tests {
 		resp, _ := testRequest(t, ts, v.method, v.request, "")
 		defer resp.Body.Close()
-		assert.Equal(t, v.expectedCode, resp.StatusCode)
+		assert.Equalf(t, v.expectedCode, resp.StatusCode, "request: %v. want: %v, got: %v", v.request, v.expectedCode, resp.StatusCode)
 	}
 }
 

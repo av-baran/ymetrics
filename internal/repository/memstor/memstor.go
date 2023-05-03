@@ -35,7 +35,7 @@ func (s *MemStorage) SetMetric(m metric.Metrics) error {
 		if m.Delta == nil {
 			return interrors.ErrInvalidMetricValue
 		}
-		s.CounterStor[m.ID] = *m.Delta
+		s.CounterStor[m.ID] += *m.Delta
 	default:
 		return interrors.ErrInvalidMetricType
 	}

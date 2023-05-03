@@ -22,9 +22,9 @@ var (
 
 func Test_collectMetrics(t *testing.T) {
 	test := struct {
-		want map[string]metric.Type
+		want map[string]string
 	}{
-		want: map[string]metric.Type{
+		want: map[string]string{
 			"Alloc":         metric.GaugeType,
 			"BuckHashSys":   metric.GaugeType,
 			"Frees":         metric.GaugeType,
@@ -77,21 +77,21 @@ func Test_collectMetrics(t *testing.T) {
 func Test_sendMetricOk(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  metric.Metric
+		Metric  Metric
 		wantErr bool
 	}{
 		{
 			name: "Wrong type",
-			Metric: metric.Metric{
+			Metric: Metric{
 				Name:  "unknownMetric",
 				Value: uint64(22),
-				Type:  metric.Type("unknown"),
+				Type:  metric.UnknownType,
 			},
 			wantErr: true,
 		},
 		{
 			name: "Correct type",
-			Metric: metric.Metric{
+			Metric: Metric{
 				Name:  "unknownMetric",
 				Value: uint64(22),
 				Type:  metric.GaugeType,
@@ -127,21 +127,21 @@ func Test_sendMetricOk(t *testing.T) {
 func Test_sendMetricErr(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  metric.Metric
+		Metric  Metric
 		wantErr bool
 	}{
 		{
 			name: "Wrong type",
-			Metric: metric.Metric{
+			Metric: Metric{
 				Name:  "unknownMetric",
 				Value: 22,
-				Type:  metric.Type("unknown"),
+				Type:  "unknown",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Correct type",
-			Metric: metric.Metric{
+			Metric: Metric{
 				Name:  "unknownMetric",
 				Value: 22,
 				Type:  metric.GaugeType,

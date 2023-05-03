@@ -17,14 +17,14 @@ func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	for _, v := range metrics {
 		switch v.MType {
 		case "counter":
-			strMetrics[v.ID] = fmt.Sprintf("%v", v.Delta)
+			strMetrics[v.ID] = fmt.Sprintf("%v", *v.Delta)
 		case "gauge":
-			strMetrics[v.ID] = fmt.Sprintf("%v", v.Value)
+			strMetrics[v.ID] = fmt.Sprintf("%v", *v.Value)
 		}
 	}
 
 	if err := writeTemplate(w, strMetrics); err != nil {
-		http.Error(w, fmt.Sprintf("can't render metrics page: %s", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("can't render metrics page: %s", err), getErrorCode(err))
 	}
 }
 

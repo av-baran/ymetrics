@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -27,7 +28,8 @@ func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	case metric.CounterType:
 		resp = fmt.Sprintf("%v", *m.Delta)
 	default:
-		http.Error(w, "unknown metric type", http.StatusBadRequest)
+		err := interrors.ErrInvalidMetricType
+		http.Error(w, err.Error(), getErrorCode(err))
 		return
 	}
 	w.Write([]byte(resp))

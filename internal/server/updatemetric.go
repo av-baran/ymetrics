@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/av-baran/ymetrics/internal/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -22,21 +23,19 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	case metric.GaugeType:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), getErrorCode(err))
 		}
 		m.Value = &v
-		s.Storage.SetMetric(*m)
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), getErrorCode(err))
 		}
 		m.Delta = &v
-		s.Storage.AddCounter(m.ID, *m.Delta)
 	default:
-		http.Error(w, "unknown metric type", http.StatusNotImplemented)
+		err := interrors.ErrInvalidMetricType
+		http.Error(w, err.Error(), getErrorCode(err))
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
+	s.Storage.SetMetric(*m)
 }

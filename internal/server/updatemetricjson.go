@@ -15,19 +15,19 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 
 	readBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("cannot read request body: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("cannot read request body: %s", err), getErrorCode(err))
 		return
 	}
 	r.Body.Close()
 
 	m := &metric.Metrics{}
 	if err := json.Unmarshal(readBody, m); err != nil {
-		http.Error(w, fmt.Sprintf("cannot unmarshal request body: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("cannot unmarshal request body: %s", err), getErrorCode(err))
 		return
 	}
 
 	if err := s.Storage.SetMetric(*m); err != nil {
-		http.Error(w, fmt.Sprintf("cannot set metric: %s", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("cannot set metric: %s", err), getErrorCode(err))
 		return
 	}
 
@@ -36,13 +36,13 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		MType: m.MType,
 	}
 	if err := s.Storage.GetMetric(resM); err != nil {
-		http.Error(w, fmt.Sprintf("cannot get metric: %s", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("cannot get metric: %s", err), getErrorCode(err))
 		return
 	}
 
 	respBody, err := json.Marshal(&resM)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("cannot marshal response body: %s", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cannot marshal response body: %s", err), getErrorCode(err))
 		return
 	}
 
