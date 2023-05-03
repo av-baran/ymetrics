@@ -23,8 +23,12 @@ func main() {
 	}
 
 	if srv.Cfg.Restore {
-		if err := srv.Restore(); err != nil {
-			logger.Log.Sugar().Debugln("error while restoring from file: %v", err.Error())
+		if _, err := os.Stat(cfg.FileStoragePath); err == nil {
+			if err := srv.Restore(); err != nil {
+				logger.Log.Sugar().Debugln("error while restoring from file: %s", err.Error())
+			}
+		} else {
+			logger.Log.Sugar().Debugln("backoup file is not exist: %s", err.Error())
 		}
 	}
 
