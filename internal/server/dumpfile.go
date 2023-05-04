@@ -70,6 +70,3 @@ func (s *Server) Syncfile() {
 		}
 	}
 }
-
-func NewDumper() {
-}
