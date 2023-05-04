@@ -67,7 +67,7 @@ func testGzRequest(t *testing.T, ts *httptest.Server, method, path string, body 
 	_, err = respBody.ReadFrom(gzr)
 	require.NoError(t, err)
 
-	return resp, string(respBody.Bytes())
+	return resp, respBody.String()
 }
 
 func TestNew(t *testing.T) {
