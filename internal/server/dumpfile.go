@@ -43,7 +43,7 @@ func (s *Server) Dumpfile() error {
 
 	file, err := os.OpenFile(s.Cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		return fmt.Errorf("cannot open/create dump file for write: %w", err)
+		return fmt.Errorf("cannot open/create backup file for write: %w", err)
 	}
 	defer file.Close()
 
@@ -66,7 +66,7 @@ func (s *Server) Syncfile() {
 
 	for range syncTicker.C {
 		if err := s.Dumpfile(); err != nil {
-			log.Fatalf("cannot dump file: %s", err)
+			log.Fatalf("cannot sync backup file: %s", err)
 		}
 	}
 }

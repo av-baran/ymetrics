@@ -6,11 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository/memstor"
 	"github.com/av-baran/ymetrics/internal/server"
 	"golang.org/x/net/context"
+)
+
+const (
+	serverShutdownTimeout = time.Second * 10
 )
 
 func main() {
@@ -25,10 +30,10 @@ func main() {
 	if srv.Cfg.Restore {
 		if _, err := os.Stat(cfg.FileStoragePath); err == nil {
 			if err := srv.Restore(); err != nil {
-				logger.Log.Sugar().Debugln("error while restoring from file: %s", err.Error())
+				logger.Log.Sugar().Fatalf("cannot restore: %s", err.Error())
 			}
 		} else {
-			logger.Log.Sugar().Debugln("backup file is not exist: %s", err.Error())
+			logger.Log.Sugar().Debugln("errorbackup file: %s", err.Error())
 		}
 	}
 
@@ -45,6 +50,8 @@ func main() {
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
 	<-exitSignal
 
-	httpServer.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
+	defer cancel()
+	httpServer.Shutdown(ctx)
 	srv.Dumpfile()
 }
