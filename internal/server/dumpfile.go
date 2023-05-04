@@ -18,28 +18,22 @@ func (s *Server) Restore() error {
 	dumpFileSync.Lock()
 	defer dumpFileSync.Unlock()
 
-	file, err := os.OpenFile(s.Cfg.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0644)
+	buf, err := os.ReadFile(s.Cfg.FileStoragePath)
 	if err != nil {
-		return fmt.Errorf("cannot open/create dump file for write: %w", err)
+		return fmt.Errorf("cannot read backup file: %w", err)
 	}
-	defer file.Close()
 
-	buf := bufio.NewScanner(file)
+	metrics := make([]metric.Metrics, 0)
 
-	for buf.Scan() {
-		m := metric.Metrics{}
-		if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
-			return fmt.Errorf("cannot decode metric: %w", err)
-		}
-		if err := s.Storage.SetMetric(m); err != nil {
+	if err := json.Unmarshal(buf, &metrics); err != nil {
+		return fmt.Errorf("cannot unmarshal backup file content: %w", err)
+	}
+
+	for _, v := range metrics {
+		if err := s.Storage.SetMetric(v); err != nil {
 			return fmt.Errorf("cannot set metric: %w", err)
 		}
 	}
-
-	if buf.Err() != nil {
-		return fmt.Errorf("cannot scan file: %w", buf.Err())
-	}
-
 	return nil
 }
 
@@ -59,10 +53,8 @@ func (s *Server) Dumpfile() error {
 	encoder := json.NewEncoder(buf)
 
 	metrics := s.Storage.GetAllMetrics()
-	for _, v := range metrics {
-		if err := encoder.Encode(&v); err != nil {
-			return fmt.Errorf("cannot encode metric: %w", err)
-		}
+	if err := encoder.Encode(&metrics); err != nil {
+		return fmt.Errorf("cannot encode metrics: %w", err)
 	}
 
 	return nil
