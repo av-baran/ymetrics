@@ -2,12 +2,18 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
+
+func sendError(w http.ResponseWriter, msg string, e error) {
+	logger.Log.Sugar().Errorln(msg)
+	http.Error(w, fmt.Sprintf("%s: %s", msg, e), getErrorCode(e))
+}
 
 func getErrorCode(e error) (statusCode int) {
 	switch {

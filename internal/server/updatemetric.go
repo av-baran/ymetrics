@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -23,18 +22,17 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	case metric.GaugeType:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), getErrorCode(err))
+			sendError(w, "cannot parse gauge metric", err)
 		}
 		m.Value = &v
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), getErrorCode(err))
+			sendError(w, "cannot parse counter metric", err)
 		}
 		m.Delta = &v
 	default:
-		err := interrors.ErrInvalidMetricType
-		http.Error(w, err.Error(), getErrorCode(err))
+		sendError(w, "cannot handle update request", interrors.ErrInvalidMetricType)
 		return
 	}
 	s.Storage.SetMetric(*m)

@@ -17,7 +17,7 @@ func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		MType: chi.URLParam(r, "type"),
 	}
 	if err := s.Storage.GetMetric(m); err != nil {
-		http.Error(w, fmt.Sprintf("cannot get gauge metric: %s", err), getErrorCode(err))
+		sendError(w, "cannot get gauge metric", err)
 		return
 	}
 
@@ -28,8 +28,7 @@ func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	case metric.CounterType:
 		resp = fmt.Sprintf("%v", *m.Delta)
 	default:
-		err := interrors.ErrInvalidMetricType
-		http.Error(w, err.Error(), getErrorCode(err))
+		sendError(w, "cannot handle get request", interrors.ErrInvalidMetricType)
 		return
 	}
 	w.Write([]byte(resp))

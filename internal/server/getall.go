@@ -24,7 +24,7 @@ func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := writeTemplate(w, strMetrics); err != nil {
-		http.Error(w, fmt.Sprintf("can't render metrics page: %s", err), getErrorCode(err))
+		sendError(w, "cannot render metrics page", err)
 	}
 }
 
