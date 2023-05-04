@@ -31,7 +31,7 @@ func (s *Server) Restore() error {
 
 	for _, v := range metrics {
 		if err := s.Storage.SetMetric(v); err != nil {
-			return fmt.Errorf("cannot set metric: %w", err)
+			return fmt.Errorf("cannot set metric from backup: %w", err)
 		}
 	}
 	return nil
