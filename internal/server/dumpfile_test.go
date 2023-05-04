@@ -91,7 +91,8 @@ func TestDump(t *testing.T) {
 	}
 
 	for _, req := range data {
-		testRequest(t, firstTS, req.method, req.request, req.body)
+		resp, _ := testRequest(t, firstTS, req.method, req.request, req.body)
+		resp.Body.Close()
 	}
 	go firstServ.Syncfile()
 	time.Sleep(time.Second * 2)
@@ -102,6 +103,8 @@ func TestDump(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, got := testRequest(t, secondTS, tt.method, tt.request, tt.body)
+			resp.Body.Close()
+
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assert.Equal(t, tt.expectedBody, got)
 		})
