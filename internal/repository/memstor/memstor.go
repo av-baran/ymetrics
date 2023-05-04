@@ -26,12 +26,12 @@ func (s *MemStorage) SetMetric(m metric.Metrics) error {
 	defer memStorageSync.Unlock()
 
 	switch m.MType {
-	case "gauge":
+	case metric.GaugeType:
 		if m.Value == nil {
 			return interrors.ErrInvalidMetricValue
 		}
 		s.GaugeStor[m.ID] = *m.Value
-	case "counter":
+	case metric.CounterType:
 		if m.Delta == nil {
 			return interrors.ErrInvalidMetricValue
 		}
@@ -47,13 +47,13 @@ func (s *MemStorage) GetMetric(m *metric.Metrics) error {
 	defer memStorageSync.Unlock()
 
 	switch m.MType {
-	case "gauge":
+	case metric.GaugeType:
 		v, ok := s.GaugeStor[m.ID]
 		if !ok {
 			return interrors.ErrMetricNotFound
 		}
 		m.Value = &v
-	case "counter":
+	case metric.CounterType:
 		v, ok := s.CounterStor[m.ID]
 		if !ok {
 			return interrors.ErrMetricNotFound
