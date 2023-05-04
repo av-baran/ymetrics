@@ -25,13 +25,13 @@ var (
 func TestDump(t *testing.T) {
 	firstRepo := memstor.New()
 	firstServ := New(firstRepo, dumpTestCfg)
-	firstTs := httptest.NewServer(firstServ.Router)
-	defer firstTs.Close()
+	firstTS := httptest.NewServer(firstServ.Router)
+	defer firstTS.Close()
 
 	secondRepo := memstor.New()
 	secondServ := New(secondRepo, dumpTestCfg)
-	secondTs := httptest.NewServer(secondServ.Router)
-	defer secondTs.Close()
+	secondTS := httptest.NewServer(secondServ.Router)
+	defer secondTS.Close()
 
 	f, err := os.Create(dumpTestCfg.FileStoragePath)
 	require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestDump(t *testing.T) {
 	}
 
 	for _, req := range data {
-		testRequest(t, firstTs, req.method, req.request, req.body)
+		testRequest(t, firstTS, req.method, req.request, req.body)
 	}
 	go firstServ.Syncfile()
 	time.Sleep(time.Second * 2)
@@ -101,7 +101,7 @@ func TestDump(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, got := testRequest(t, secondTs, tt.method, tt.request, tt.body)
+			resp, got := testRequest(t, secondTS, tt.method, tt.request, tt.body)
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assert.Equal(t, tt.expectedBody, got)
 		})
