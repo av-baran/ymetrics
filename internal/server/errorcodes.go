@@ -11,7 +11,7 @@ import (
 )
 
 func sendError(w http.ResponseWriter, msg string, e error) {
-	logger.Log.Sugar().Errorln(msg)
+	logger.Error(msg)
 	http.Error(w, fmt.Sprintf("%s: %s", msg, e), getErrorCode(e))
 }
 
@@ -32,7 +32,7 @@ func getErrorCode(e error) (statusCode int) {
 		statusCode = http.StatusNotFound
 
 	default:
-		logger.Log.Sugar().Debugln("unknown internal error happens: %s", e)
+		logger.Error("unknown internal error happens: %s", e)
 		statusCode = http.StatusInternalServerError
 	}
 	return

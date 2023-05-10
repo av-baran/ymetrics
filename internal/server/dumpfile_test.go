@@ -7,18 +7,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/repository/memstor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	dumpTestCfg = &ServerConfig{
+	dumpTestCfg = &config.ServerConfig{
 		ServerAddress:   "localhost:8080",
-		LogLevel:        "debug",
 		StoreInterval:   1,
 		FileStoragePath: "/tmp/metrics-test.json",
 		Restore:         true,
+		LoggerConfig: config.LoggerConfig{
+			Level: "debug",
+		},
 	}
 )
 
@@ -27,11 +30,13 @@ func TestDump(t *testing.T) {
 	firstServ := New(firstRepo, dumpTestCfg)
 	firstTS := httptest.NewServer(firstServ.Router)
 	defer firstTS.Close()
+	defer firstServ.Shutdown()
 
 	secondRepo := memstor.New()
 	secondServ := New(secondRepo, dumpTestCfg)
 	secondTS := httptest.NewServer(secondServ.Router)
 	defer secondTS.Close()
+	defer secondServ.Shutdown()
 
 	f, err := os.Create(dumpTestCfg.FileStoragePath)
 	require.NoError(t, err)
@@ -94,10 +99,10 @@ func TestDump(t *testing.T) {
 		resp, _ := testRequest(t, firstTS, req.method, req.request, req.body)
 		resp.Body.Close()
 	}
-	go firstServ.Syncfile()
+	go firstServ.syncfile()
 	time.Sleep(time.Second * 2)
 
-	err = secondServ.Restore()
+	err = secondServ.restore()
 	assert.NoError(t, err)
 
 	for _, tt := range tests {

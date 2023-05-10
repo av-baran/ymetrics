@@ -3,9 +3,7 @@ package repository
 import "github.com/av-baran/ymetrics/internal/metric"
 
 type Storager interface {
-	SetMetric(metric.Metrics) error
-	GetMetric(*metric.Metrics) error
-	GetAllMetrics() []metric.Metrics
-
-	AddCounter(string, int64) int64
+	SetMetric(metric.Metric) error
+	GetMetric(id string, mType string) (*metric.Metric, error)
+	GetAllMetrics() []metric.Metric
 }

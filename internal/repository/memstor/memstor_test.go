@@ -29,12 +29,12 @@ func TestNew(t *testing.T) {
 func TestMemStorage(t *testing.T) {
 	tSetMetric := []struct {
 		name    string
-		metric  metric.Metrics
+		metric  metric.Metric
 		wantErr bool
 	}{
 		{
 			name: "set gauge",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "someGauge",
 				MType: metric.GaugeType,
 				Value: getFloatPtr(gaugeVal),
@@ -44,7 +44,7 @@ func TestMemStorage(t *testing.T) {
 		},
 		{
 			name: "set counter",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "someCounter",
 				MType: metric.CounterType,
 				Value: nil,
@@ -54,7 +54,7 @@ func TestMemStorage(t *testing.T) {
 		},
 		{
 			name: "set unknown type",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "unknown",
 				MType: metric.UnknownType,
 				Value: getFloatPtr(gaugeVal),
@@ -66,14 +66,14 @@ func TestMemStorage(t *testing.T) {
 
 	tGetMetric := []struct {
 		name      string
-		metric    metric.Metrics
+		metric    metric.Metric
 		wantErr   bool
 		wantValue *float64
 		wantDelta *int64
 	}{
 		{
 			name: "get gauge",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "someGauge",
 				MType: metric.GaugeType,
 				Value: nil,
@@ -85,7 +85,7 @@ func TestMemStorage(t *testing.T) {
 		},
 		{
 			name: "get counter",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "someCounter",
 				MType: metric.CounterType,
 				Delta: nil,
@@ -97,7 +97,7 @@ func TestMemStorage(t *testing.T) {
 		},
 		{
 			name: "get unknown type",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "someGauge",
 				MType: metric.UnknownType,
 				Value: nil,
@@ -109,7 +109,7 @@ func TestMemStorage(t *testing.T) {
 		},
 		{
 			name: "get unknown name",
-			metric: metric.Metrics{
+			metric: metric.Metric{
 				ID:    "unknown",
 				MType: metric.CounterType,
 				Value: nil,
@@ -121,7 +121,7 @@ func TestMemStorage(t *testing.T) {
 		},
 	}
 
-	tAllMetric := make([]metric.Metrics, 0)
+	tAllMetric := make([]metric.Metric, 0)
 	for _, v := range tSetMetric {
 		if !v.wantErr {
 			tAllMetric = append(tAllMetric, v.metric)
@@ -142,60 +142,17 @@ func TestMemStorage(t *testing.T) {
 
 	for _, tt := range tGetMetric {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.GetMetric(&tt.metric)
+			res, err := s.GetMetric(tt.metric.ID, tt.metric.MType)
 			if !tt.wantErr {
 				assert.NoError(t, err)
+				assert.Equal(t, res.Delta, tt.wantDelta)
+				assert.Equal(t, res.Value, tt.wantValue)
 			} else {
 				assert.Error(t, err)
 			}
-			assert.Equal(t, tt.metric.Delta, tt.wantDelta)
-			assert.Equal(t, tt.metric.Value, tt.wantValue)
 		})
 	}
 
 	gotMetrics := s.GetAllMetrics()
 	assert.Equal(t, tAllMetric, gotMetrics)
-}
-
-func TestMemStorage_AddCounter(t *testing.T) {
-	type args struct {
-		name  string
-		value int64
-	}
-	tests := []struct {
-		name string
-		args args
-		want int64
-	}{
-		{
-			name: "first counter",
-			args: args{
-				name:  "c",
-				value: 1,
-			},
-			want: 1,
-		},
-		{
-			name: "second counter",
-			args: args{
-				name:  "c",
-				value: 2,
-			},
-			want: 3,
-		},
-		{
-			name: "third counter",
-			args: args{
-				name:  "c",
-				value: 4,
-			},
-			want: 7,
-		},
-	}
-	s := New()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, s.AddCounter(tt.args.name, tt.args.value))
-		})
-	}
 }

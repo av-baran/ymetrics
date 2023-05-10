@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	defaultCfg = &AgentConfig{
+	defaultCfg = &config.AgentConfig{
 		ServerAddress:  "localhost:8080",
 		PollInterval:   3,
 		ReportInterval: 5,
@@ -67,9 +68,14 @@ func Test_collectMetrics(t *testing.T) {
 	a.collectMetrics()
 	gotMetricNames := make([]string, len(collectedMetrics))
 	for i, v := range collectedMetrics {
-		gotMetricNames[i] = v.Name
-		assert.NotNil(t, v.Value)
-		assert.Equal(t, test.want[v.Name], v.Type)
+		gotMetricNames[i] = v.ID
+		switch v.MType {
+		case metric.GaugeType:
+			assert.NotNil(t, v.Value)
+		case metric.CounterType:
+			assert.NotNil(t, v.Delta)
+			assert.Equal(t, test.want[v.ID], v.MType)
+		}
 	}
 	assert.ElementsMatch(t, gotMetricNames, wantMetricNames)
 }
@@ -77,24 +83,15 @@ func Test_collectMetrics(t *testing.T) {
 func Test_sendMetricOk(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  Metric
+		Metric  metric.Metric
 		wantErr bool
 	}{
 		{
-			name: "Wrong type",
-			Metric: Metric{
-				Name:  "unknownMetric",
-				Value: uint64(22),
-				Type:  metric.UnknownType,
-			},
-			wantErr: true,
-		},
-		{
 			name: "Correct type",
-			Metric: Metric{
-				Name:  "unknownMetric",
-				Value: uint64(22),
-				Type:  metric.GaugeType,
+			Metric: metric.Metric{
+				ID:    "knownMetric",
+				Value: getFloat64Ptr(22),
+				MType: metric.GaugeType,
 			},
 			wantErr: false,
 		},
@@ -104,7 +101,7 @@ func Test_sendMetricOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	testCfg := &AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
@@ -114,7 +111,7 @@ func Test_sendMetricOk(t *testing.T) {
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got1 := a.sendMetricJSON(tt.Metric)
+			got1 := a.sendMetricJSON(&tt.Metric)
 			if tt.wantErr {
 				assert.Error(t, got1)
 			} else {
@@ -127,24 +124,15 @@ func Test_sendMetricOk(t *testing.T) {
 func Test_sendMetricErr(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  Metric
+		Metric  metric.Metric
 		wantErr bool
 	}{
 		{
-			name: "Wrong type",
-			Metric: Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  "unknown",
-			},
-			wantErr: true,
-		},
-		{
 			name: "Correct type",
-			Metric: Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  metric.GaugeType,
+			Metric: metric.Metric{
+				ID:    "unknownMetric",
+				Value: getFloat64Ptr(22),
+				MType: metric.GaugeType,
 			},
 			wantErr: false,
 		},
@@ -154,7 +142,7 @@ func Test_sendMetricErr(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	testCfg := &AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
@@ -164,7 +152,7 @@ func Test_sendMetricErr(t *testing.T) {
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := a.sendMetricJSON(tt.Metric)
+			got := a.sendMetricJSON(&tt.Metric)
 			assert.Error(t, got)
 		})
 	}
@@ -175,7 +163,7 @@ func TestRun(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	testCfg := &AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
@@ -190,7 +178,7 @@ func Test_dumpOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	testCfg := &AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
@@ -207,7 +195,7 @@ func Test_dumpErr(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	testCfg := &AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,

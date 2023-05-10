@@ -12,7 +12,7 @@ import (
 func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
-	m := &metric.Metrics{
+	m := &metric.Metric{
 		ID:    chi.URLParam(r, "name"),
 		MType: chi.URLParam(r, "type"),
 	}

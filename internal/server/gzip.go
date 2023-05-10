@@ -39,7 +39,7 @@ func gzMiddleware(h http.Handler) http.Handler {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.Log.Sugar().Debugln("cannot decompress body: %w", err)
+				logger.Errorf("cannot decompress body: %s", err)
 				return
 			}
 			r.Body = cr

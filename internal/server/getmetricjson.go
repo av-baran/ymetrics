@@ -19,18 +19,19 @@ func (s *Server) GetMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body.Close()
 
-	m := &metric.Metrics{}
+	m := &metric.Metric{}
 	if err := json.Unmarshal(readBody, m); err != nil {
 		sendError(w, "cannot unmarshal request body", err)
 		return
 	}
 
-	if err := s.Storage.GetMetric(m); err != nil {
+	respM, err := s.Storage.GetMetric(m.ID, m.MType)
+	if err != nil {
 		sendError(w, "cannot get metric", err)
 		return
 	}
 
-	respBody, err := json.Marshal(m)
+	respBody, err := json.Marshal(respM)
 	if err != nil {
 		sendError(w, "cannot marshal response body", err)
 		return

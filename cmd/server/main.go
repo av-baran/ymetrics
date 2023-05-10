@@ -2,56 +2,40 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository/memstor"
 	"github.com/av-baran/ymetrics/internal/server"
-	"golang.org/x/net/context"
-)
-
-const (
-	serverShutdownTimeout = time.Second * 10
 )
 
 func main() {
-	repo := memstor.New()
-	cfg := server.NewServerConfig()
-	srv := server.New(repo, cfg)
+	cfg, err := config.NewServerConfig()
+	if err != nil {
+		logger.Fatalf("cannot init config: %s", err)
+	}
 
-	if err := logger.Init(srv.Cfg.LogLevel); err != nil {
+	if err := logger.Init(cfg.LoggerConfig); err != nil {
 		log.Fatalf("cannot initialize logger: %s", err)
 	}
+	defer logger.Sync()
 
-	if srv.Cfg.Restore {
-		if _, err := os.Stat(cfg.FileStoragePath); err == nil {
-			if err := srv.Restore(); err != nil {
-				logger.Log.Sugar().Fatalf("cannot restore: %s", err.Error())
-			}
-		} else {
-			logger.Log.Sugar().Debugln("errorbackup file: %s", err.Error())
-		}
-	}
-
-	httpServer := &http.Server{Addr: srv.Cfg.ServerAddress, Handler: srv.Router}
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil {
-			log.Fatalf("cannot run server: %s", err)
-		}
-	}()
-
-	go srv.Syncfile()
+	repo := memstor.New()
+	// оставил server.New() чтобы было удобнее тестировать.
+	// Если сделать server.Start, в котором вызывать Run() сразу после создания,
+	// тогда в тестах не запустить сервер через http.testServer,
+	// как это обойти без лишнего усложнения не смог придумать.
+	srv := server.New(repo, cfg)
+	go srv.Run()
 
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
 	<-exitSignal
 
-	ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
-	defer cancel()
-	httpServer.Shutdown(ctx)
-	srv.Dumpfile()
+	if err := srv.Shutdown(); err != nil {
+		logger.Fatalf("cannot gracefully shutdown server: %w", err)
+	}
 }

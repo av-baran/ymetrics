@@ -8,20 +8,18 @@ import (
 )
 
 type MemStorage struct {
-	GaugeStor   map[string]float64
-	CounterStor map[string]int64
+	MetricsStor map[string]metric.Metric
 }
 
 var memStorageSync = sync.Mutex{}
 
 func New() *MemStorage {
 	return &MemStorage{
-		GaugeStor:   make(map[string]float64),
-		CounterStor: make(map[string]int64),
+		MetricsStor: make(map[string]metric.Metric),
 	}
 }
 
-func (s *MemStorage) SetMetric(m metric.Metrics) error {
+func (s *MemStorage) SetMetric(m metric.Metric) error {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 
@@ -30,74 +28,49 @@ func (s *MemStorage) SetMetric(m metric.Metrics) error {
 		if m.Value == nil {
 			return interrors.ErrInvalidMetricValue
 		}
-		s.GaugeStor[m.ID] = *m.Value
+		s.MetricsStor[m.ID] = m
 	case metric.CounterType:
 		if m.Delta == nil {
 			return interrors.ErrInvalidMetricValue
 		}
-		s.CounterStor[m.ID] += *m.Delta
+		if s.MetricsStor[m.ID].Delta != nil {
+			currentValue := *s.MetricsStor[m.ID].Delta
+			newValue := currentValue + *m.Delta
+			m.Delta = &newValue
+		}
+		s.MetricsStor[m.ID] = m
 	default:
 		return interrors.ErrInvalidMetricType
 	}
 	return nil
 }
 
-func (s *MemStorage) GetMetric(m *metric.Metrics) error {
+func (s *MemStorage) GetMetric(id string, mType string) (*metric.Metric, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 
-	switch m.MType {
-	case metric.GaugeType:
-		v, ok := s.GaugeStor[m.ID]
-		if !ok {
-			return interrors.ErrMetricNotFound
-		}
-		m.Value = &v
-	case metric.CounterType:
-		v, ok := s.CounterStor[m.ID]
-		if !ok {
-			return interrors.ErrMetricNotFound
-		}
-		m.Delta = &v
-	default:
-		return interrors.ErrInvalidMetricType
+	if mType != metric.GaugeType && mType != metric.CounterType {
+		return nil, interrors.ErrInvalidMetricType
 	}
-	return nil
+
+	m, ok := s.MetricsStor[id]
+	if !ok {
+		return nil, interrors.ErrMetricNotFound
+	}
+	if m.MType != mType {
+		return nil, interrors.ErrMetricNotFound
+	}
+	return &m, nil
 }
 
-func (s *MemStorage) GetAllMetrics() []metric.Metrics {
+func (s *MemStorage) GetAllMetrics() []metric.Metric {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	res := make([]metric.Metrics, 0)
+	res := make([]metric.Metric, 0)
 
-	for k, v := range s.GaugeStor {
-		value := v
-		m := &metric.Metrics{
-			ID:    k,
-			MType: "gauge",
-			Delta: nil,
-			Value: &value,
-		}
-		res = append(res, *m)
+	for _, v := range s.MetricsStor {
+		res = append(res, v)
 	}
 
-	for k, v := range s.CounterStor {
-		delta := v
-		m := &metric.Metrics{
-			ID:    k,
-			MType: "counter",
-			Delta: &delta,
-			Value: nil,
-		}
-		res = append(res, *m)
-	}
 	return res
-}
-
-func (s *MemStorage) AddCounter(name string, value int64) int64 {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	v := s.CounterStor[name]
-	s.CounterStor[name] = v + value
-	return s.CounterStor[name]
 }
