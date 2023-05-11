@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-chi/chi/v5"
@@ -20,7 +21,7 @@ func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("get metric handler m: %+v", m)
+	logger.Errorf("get metric handler m: %+v", m)
 	var resp string
 	switch metricType {
 	case metric.GaugeType:

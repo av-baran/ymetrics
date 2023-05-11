@@ -10,7 +10,7 @@ import (
 
 const (
 	serverDefaultServerAddress   = "localhost:8080"
-	serverDefaultLogLevel        = "warn"
+	serverDefaultLogLevel        = "debug"
 	serverDefaultStoreInterval   = 300
 	serverDefaultStoragePath     = "/tmp/metrics-db.json"
 	serverDefaultRestore         = true

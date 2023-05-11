@@ -51,16 +51,16 @@ func (s *Server) registerRoutes() {
 func (s *Server) Run() {
 	if s.cfg.Restore {
 		if err := s.restore(); err != nil {
-			logger.Fatalf("cannot run server: %s", err)
+			// в автотестах сервер запускается с RESTORE=true, но файл отсутствует. Поэтому поставил не Fatalf
+			logger.Errorf("cannot restore from backup: %s", err)
 		}
 	}
+	// если файла нет, мы создадим его в dumpfile(), который будет вызван в syncfile()
+	go s.syncfile()
 
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		logger.Fatalf("cannot run server: %s", err)
 	}
-
-	// если файла нет, мы создадим его в dumpfile(), который будет вызван в syncfile()
-	go s.syncfile()
 }
 
 func (s *Server) Shutdown() error {

@@ -11,8 +11,9 @@ import (
 )
 
 func sendError(w http.ResponseWriter, msg string, e error) {
-	logger.Error(msg)
-	http.Error(w, fmt.Sprintf("%s: %s", msg, e), getErrorCode(e))
+	errorMsg := fmt.Sprintf("%s: %s", msg, e)
+	logger.Error(errorMsg)
+	http.Error(w, errorMsg, getErrorCode(e))
 }
 
 func getErrorCode(e error) (statusCode int) {
