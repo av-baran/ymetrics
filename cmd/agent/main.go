@@ -18,7 +18,7 @@ func main() {
 	}
 
 	if err := logger.Init(cfg.LoggerConfig); err != nil {
-		logger.Fatalf("cannot init logger: %s", err)
+		log.Fatalf("cannot init logger: %s", err)
 	}
 	defer logger.Sync()
 
