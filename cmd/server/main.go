@@ -15,7 +15,7 @@ import (
 func main() {
 	cfg, err := config.NewServerConfig()
 	if err != nil {
-		logger.Fatalf("cannot init config: %s", err)
+		log.Fatalf("cannot init config: %s", err)
 	}
 
 	if err := logger.Init(cfg.LoggerConfig); err != nil {
@@ -24,10 +24,6 @@ func main() {
 	defer logger.Sync()
 
 	repo := memstor.New()
-	// оставил server.New() чтобы было удобнее тестировать.
-	// Если сделать server.Start, в котором вызывать Run() сразу после создания,
-	// тогда в тестах не запустить сервер через http.testServer,
-	// как это обойти без лишнего усложнения не смог придумать.
 	srv := server.New(repo, cfg)
 	go srv.Run()
 

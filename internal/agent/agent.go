@@ -16,6 +16,7 @@ type Agent struct {
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+var done = make(chan bool)
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
 	a := &Agent{cfg, 0, resty.New()}
@@ -29,7 +30,8 @@ func (a *Agent) Run() {
 	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
 	defer reportTicker.Stop()
 
-	for {
+	running := true
+	for running {
 		select {
 		case <-pollTicker.C:
 			a.collectMetrics()
@@ -37,9 +39,12 @@ func (a *Agent) Run() {
 			if err := a.dump(); err != nil {
 				logger.Errorf("cannot dump metrics to server: %s", err)
 			}
+		case <-done:
+			running = false
 		}
 	}
 }
 
 func (a *Agent) Shutdown() {
+	done <- true
 }

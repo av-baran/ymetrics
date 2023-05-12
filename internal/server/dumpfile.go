@@ -88,6 +88,7 @@ func (s *Server) dumpFileMiddleware(h http.Handler) http.Handler {
 		if storeInterval == 0 {
 			if err := s.cfg.IsValidStoreFile(); err != nil {
 				logger.Errorf("cannot sync with interval 0; backup file is not valid: %s", err)
+				return
 			}
 			s.dumpfile()
 		}

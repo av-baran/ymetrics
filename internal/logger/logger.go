@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -24,7 +25,7 @@ var logger *zap.SugaredLogger = zap.NewNop().Sugar()
 func Init(cfg config.LoggerConfig) error {
 	lvl, err := zap.ParseAtomicLevel(cfg.Level)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot parse log level: %w", err)
 	}
 
 	zapCfg := zap.NewProductionConfig()
@@ -32,7 +33,7 @@ func Init(cfg config.LoggerConfig) error {
 	zapCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	zapLogger, err := zapCfg.Build()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot build logger config: %w", err)
 	}
 	logger = zapLogger.Sugar()
 	return nil
