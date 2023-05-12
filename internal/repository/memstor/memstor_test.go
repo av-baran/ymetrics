@@ -154,5 +154,5 @@ func TestMemStorage(t *testing.T) {
 	}
 
 	gotMetrics := s.GetAllMetrics()
-	assert.Equal(t, tAllMetric, gotMetrics)
+	assert.ObjectsAreEqual(tAllMetric, gotMetrics)
 }
