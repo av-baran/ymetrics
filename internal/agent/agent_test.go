@@ -13,11 +13,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	defaultCfg = &config.AgentConfig{
+		ServerAddress:  "localhost:8080",
+		PollInterval:   3,
+		ReportInterval: 5,
+	}
+)
+
 func Test_collectMetrics(t *testing.T) {
 	test := struct {
-		want map[string]metric.Type
+		want map[string]string
 	}{
-		want: map[string]metric.Type{
+		want: map[string]string{
 			"Alloc":         metric.GaugeType,
 			"BuckHashSys":   metric.GaugeType,
 			"Frees":         metric.GaugeType,
@@ -55,15 +63,19 @@ func Test_collectMetrics(t *testing.T) {
 		wantMetricNames[i] = k
 		i++
 	}
-	cfg := config.NewAgentConfig()
-	a := NewAgent(cfg)
+	a := NewAgent(defaultCfg)
 
 	a.collectMetrics()
 	gotMetricNames := make([]string, len(collectedMetrics))
 	for i, v := range collectedMetrics {
-		gotMetricNames[i] = v.Name
-		assert.NotNil(t, v.Value)
-		assert.Equal(t, test.want[v.Name], v.Type)
+		gotMetricNames[i] = v.ID
+		switch v.MType {
+		case metric.GaugeType:
+			assert.NotNil(t, v.Value)
+		case metric.CounterType:
+			assert.NotNil(t, v.Delta)
+			assert.Equal(t, test.want[v.ID], v.MType)
+		}
 	}
 	assert.ElementsMatch(t, gotMetricNames, wantMetricNames)
 }
@@ -75,20 +87,11 @@ func Test_sendMetricOk(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Wrong type",
-			Metric: metric.Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  metric.Type("unknown"),
-			},
-			wantErr: true,
-		},
-		{
 			name: "Correct type",
 			Metric: metric.Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  metric.GaugeType,
+				ID:    "knownMetric",
+				Value: getFloat64Ptr(22),
+				MType: metric.GaugeType,
 			},
 			wantErr: false,
 		},
@@ -98,17 +101,17 @@ func Test_sendMetricOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got1 := a.sendMetric(tt.Metric)
+			got1 := a.sendMetricJSON(&tt.Metric)
 			if tt.wantErr {
 				assert.Error(t, got1)
 			} else {
@@ -125,40 +128,31 @@ func Test_sendMetricErr(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Wrong type",
-			Metric: metric.Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  metric.Type("unknown"),
-			},
-			wantErr: true,
-		},
-		{
 			name: "Correct type",
 			Metric: metric.Metric{
-				Name:  "unknownMetric",
-				Value: 22,
-				Type:  metric.GaugeType,
+				ID:    "unknownMetric",
+				Value: getFloat64Ptr(22),
+				MType: metric.GaugeType,
 			},
 			wantErr: false,
 		},
 	}
 
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError+"\n")
+	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := a.sendMetric(tt.Metric)
+			got := a.sendMetricJSON(&tt.Metric)
 			assert.Error(t, got)
 		})
 	}
@@ -169,14 +163,14 @@ func TestRun(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	okAgent := NewAgent(cfg)
-	go okAgent.Run(cfg)
+	okAgent := NewAgent(testCfg)
+	go okAgent.Run()
 }
 
 func Test_dumpOk(t *testing.T) {
@@ -184,30 +178,30 @@ func Test_dumpOk(t *testing.T) {
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	err := a.dump()
 	assert.NoError(t, err)
 }
 
 func Test_dumpErr(t *testing.T) {
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError+"\n")
+	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
-	cfg := &config.AgentConfig{
+	testCfg := &config.AgentConfig{
 		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
 		PollInterval:   1,
 		ReportInterval: 2,
 	}
 
-	a := NewAgent(cfg)
+	a := NewAgent(testCfg)
 	a.collectMetrics()
 	err := a.dump()
 	assert.Error(t, err)

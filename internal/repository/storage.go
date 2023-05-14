@@ -1,12 +1,9 @@
 package repository
 
+import "github.com/av-baran/ymetrics/internal/metric"
+
 type Storager interface {
-	SetGauge(string, float64)
-	AddCounter(string, int64)
-
-	GetGauge(string) (string, error)
-	GetCounter(string) (string, error)
-
-	GetAllGauge() map[string]float64
-	GetAllCounter() map[string]int64
+	SetMetric(metric.Metric) error
+	GetMetric(id string, mType string) (*metric.Metric, error)
+	GetAllMetrics() []metric.Metric
 }

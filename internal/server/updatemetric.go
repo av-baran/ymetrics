@@ -1,38 +1,39 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/av-baran/ymetrics/internal/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-chi/chi/v5"
 )
 
 func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
-	name := chi.URLParam(r, "name")
-	mType := metric.Type(chi.URLParam(r, "type"))
+	m := &metric.Metric{
+		ID:    chi.URLParam(r, "name"),
+		MType: chi.URLParam(r, "type"),
+	}
 	value := chi.URLParam(r, "value")
 
-	switch mType {
+	switch m.MType {
 	case metric.GaugeType:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse gauge metric: %s", err), http.StatusBadRequest)
+			sendError(w, "cannot parse gauge metric", err)
 		}
-		s.Storage.SetGauge(name, v)
+		m.Value = &v
 	case metric.CounterType:
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("cannot parse counter metric: %s", err), http.StatusBadRequest)
+			sendError(w, "cannot parse counter metric", err)
 		}
-		s.Storage.AddCounter(name, v)
+		m.Delta = &v
 	default:
-		http.Error(w, "unknown metric type", http.StatusNotImplemented)
+		sendError(w, "cannot handle update request", interrors.ErrInvalidMetricType)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
+	s.Storage.SetMetric(*m)
 }

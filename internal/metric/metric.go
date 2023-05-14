@@ -1,25 +1,38 @@
 package metric
 
-type Type string
+import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
+)
 
 const (
-	GaugeType   = Type("gauge")
-	CounterType = Type("counter")
-	UnknownType = Type("unknown")
+	GaugeType   = "gauge"
+	CounterType = "counter"
+	UnknownType = "unknown"
 )
 
 type Metric struct {
-	Name  string
-	Value interface{}
-	Type  Type
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
-type Gauge struct {
-	Name  string
-	Value float64
-}
+func (m *Metric) ToJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.Encode(&m)
 
-type Counter struct {
-	Name  string
-	Value int64
+	gzBuf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(gzBuf)
+	if _, err := zb.Write(buf.Bytes()); err != nil {
+		return nil, fmt.Errorf("error while compressing body: %w", err)
+	}
+	if err := zb.Close(); err != nil {
+		return nil, fmt.Errorf("error while closing gz buffer: %w", err)
+	}
+
+	return gzBuf.Bytes(), nil
 }

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 	"testing"
 
@@ -16,27 +15,27 @@ func Test_getErrorCode(t *testing.T) {
 	}{
 		{
 			name:           "invalid metric type",
-			e:              errors.New(interrors.ErrInvalidMetricType),
+			e:              interrors.ErrInvalidMetricType,
 			wantStatusCode: http.StatusNotImplemented,
 		},
 		{
 			name:           "invalid metric value",
-			e:              errors.New(interrors.ErrInvalidMetricValue),
+			e:              interrors.ErrInvalidMetricValue,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:           "metric exists with another type",
-			e:              errors.New(interrors.ErrMetricExistsWithAnotherType),
+			e:              interrors.ErrMetricExistsWithAnotherType,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:           "metric not found",
-			e:              errors.New(interrors.ErrMetricNotFound),
+			e:              interrors.ErrMetricNotFound,
 			wantStatusCode: http.StatusNotFound,
 		},
 		{
 			name:           "unknow error",
-			e:              errors.New(interrors.ErrStorageInternalError),
+			e:              interrors.ErrStorageInternalError,
 			wantStatusCode: http.StatusInternalServerError,
 		},
 	}

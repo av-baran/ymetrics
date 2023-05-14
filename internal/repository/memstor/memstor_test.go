@@ -1,78 +1,158 @@
 package memstor
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/stretchr/testify/assert"
 )
+
+const (
+	gaugeVal   = float64(0.1)
+	counterVal = int64(1)
+	unknownVal = uint32(1)
+)
+
+//FIXME как проще получить указатель на значение для поля структуры
+func getFloatPtr(v float64) *float64 {
+	return &v
+}
+
+func getIntPtr(v int64) *int64 {
+	return &v
+}
 
 func TestNew(t *testing.T) {
 	assert.NotEmpty(t, New())
 }
 
-func TestMemStorage_SetGetGauge(t *testing.T) {
-	type arguments struct {
-		name  string
-		value float64
-	}
-	tests := []struct {
-		name string
-		args arguments
+func TestMemStorage(t *testing.T) {
+	tSetMetric := []struct {
+		name    string
+		metric  metric.Metric
+		wantErr bool
 	}{
 		{
-			name: "test gauge",
-			args: arguments{
-				name:  "newname",
-				value: float64(0.001),
+			name: "set gauge",
+			metric: metric.Metric{
+				ID:    "someGauge",
+				MType: metric.GaugeType,
+				Value: getFloatPtr(gaugeVal),
+				Delta: nil,
 			},
+			wantErr: false,
+		},
+		{
+			name: "set counter",
+			metric: metric.Metric{
+				ID:    "someCounter",
+				MType: metric.CounterType,
+				Value: nil,
+				Delta: getIntPtr(counterVal),
+			},
+			wantErr: false,
+		},
+		{
+			name: "set unknown type",
+			metric: metric.Metric{
+				ID:    "unknown",
+				MType: metric.UnknownType,
+				Value: getFloatPtr(gaugeVal),
+				Delta: nil,
+			},
+			wantErr: true,
 		},
 	}
-	storage := New()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			storage.SetGauge(tt.args.name, tt.args.value)
-			got, err := storage.GetGauge(tt.args.name)
-			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
-			got1, err := storage.GetGauge("unknown metric")
-			assert.Error(t, err)
-			assert.Equal(t, got1, "")
-		})
-	}
-}
 
-func TestMemStorage_SetGetCounter(t *testing.T) {
-	type arguments struct {
-		name  string
-		value int64
-	}
-	tests := []struct {
-		name string
-		args arguments
+	tGetMetric := []struct {
+		name      string
+		metric    metric.Metric
+		wantErr   bool
+		wantValue *float64
+		wantDelta *int64
 	}{
 		{
-			name: "test gauge",
-			args: arguments{
-				name:  "newname",
-				value: int64(10),
+			name: "get gauge",
+			metric: metric.Metric{
+				ID:    "someGauge",
+				MType: metric.GaugeType,
+				Value: nil,
+				Delta: nil,
 			},
+			wantErr:   false,
+			wantValue: getFloatPtr(gaugeVal),
+			wantDelta: nil,
+		},
+		{
+			name: "get counter",
+			metric: metric.Metric{
+				ID:    "someCounter",
+				MType: metric.CounterType,
+				Delta: nil,
+				Value: nil,
+			},
+			wantErr:   false,
+			wantValue: nil,
+			wantDelta: getIntPtr(counterVal),
+		},
+		{
+			name: "get unknown type",
+			metric: metric.Metric{
+				ID:    "someGauge",
+				MType: metric.UnknownType,
+				Value: nil,
+				Delta: nil,
+			},
+			wantErr:   true,
+			wantValue: nil,
+			wantDelta: nil,
+		},
+		{
+			name: "get unknown name",
+			metric: metric.Metric{
+				ID:    "unknown",
+				MType: metric.CounterType,
+				Value: nil,
+				Delta: nil,
+			},
+			wantErr:   true,
+			wantValue: nil,
+			wantDelta: nil,
 		},
 	}
-	storage := New()
-	for _, tt := range tests {
+
+	tAllMetric := make([]metric.Metric, 0)
+	for _, v := range tSetMetric {
+		if !v.wantErr {
+			tAllMetric = append(tAllMetric, v.metric)
+		}
+	}
+
+	s := New()
+	for _, tt := range tSetMetric {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.AddCounter(tt.args.name, tt.args.value)
-			got, err := storage.GetCounter(tt.args.name)
-			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value), got)
-			got1, err := storage.GetGauge("unknown metric")
-			assert.Error(t, err)
-			assert.Equal(t, got1, "")
-			storage.AddCounter(tt.args.name, 1)
-			got2, err := storage.GetCounter(tt.args.name)
-			assert.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("%v", tt.args.value+1), got2)
+			err := s.SetMetric(tt.metric)
+			if !tt.wantErr {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
 		})
 	}
+
+	for _, tt := range tGetMetric {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := s.GetMetric(tt.metric.ID, tt.metric.MType)
+			if !tt.wantErr {
+				assert.NoError(t, err)
+				assert.Equal(t, res.Delta, tt.wantDelta)
+				assert.Equal(t, res.Value, tt.wantValue)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
+
+	gotMetrics := s.GetAllMetrics()
+	assert.ObjectsAreEqual(tAllMetric, gotMetrics)
 }

@@ -1,77 +1,76 @@
 package memstor
 
 import (
-	"errors"
-	"fmt"
 	"sync"
 
+	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
 type MemStorage struct {
-	GaugeStor   map[string]float64
-	CounterStor map[string]int64
+	MetricsStor map[string]metric.Metric
 }
 
 var memStorageSync = sync.Mutex{}
 
 func New() *MemStorage {
 	return &MemStorage{
-		GaugeStor:   make(map[string]float64),
-		CounterStor: make(map[string]int64),
+		MetricsStor: make(map[string]metric.Metric),
 	}
 }
 
-func (s *MemStorage) SetGauge(name string, value float64) {
+func (s *MemStorage) SetMetric(m metric.Metric) error {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	s.GaugeStor[name] = value
+
+	switch m.MType {
+	case metric.GaugeType:
+		if m.Value == nil {
+			return interrors.ErrInvalidMetricValue
+		}
+		s.MetricsStor[m.ID] = m
+	case metric.CounterType:
+		if m.Delta == nil {
+			return interrors.ErrInvalidMetricValue
+		}
+		if s.MetricsStor[m.ID].Delta != nil {
+			currentValue := *s.MetricsStor[m.ID].Delta
+			newValue := currentValue + *m.Delta
+			m.Delta = &newValue
+		}
+		s.MetricsStor[m.ID] = m
+	default:
+		return interrors.ErrInvalidMetricType
+	}
+	return nil
 }
 
-func (s *MemStorage) AddCounter(name string, value int64) {
+func (s *MemStorage) GetMetric(id string, mType string) (*metric.Metric, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	v := s.CounterStor[name]
-	s.CounterStor[name] = v + value
-}
 
-func (s *MemStorage) GetGauge(name string) (string, error) {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	v, ok := s.GaugeStor[name]
+	if mType != metric.GaugeType && mType != metric.CounterType {
+		return nil, interrors.ErrInvalidMetricType
+	}
 
+	m, ok := s.MetricsStor[id]
 	if !ok {
-		return "", errors.New(interrors.ErrMetricNotFound)
+		return nil, interrors.ErrMetricNotFound
 	}
-	return fmt.Sprintf("%v", v), nil
+	if m.MType != mType {
+		return nil, interrors.ErrMetricNotFound
+	}
+	return &m, nil
 }
 
-func (s *MemStorage) GetCounter(name string) (string, error) {
+func (s *MemStorage) GetAllMetrics() []metric.Metric {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
-	v, ok := s.CounterStor[name]
-	if !ok {
-		return "", errors.New(interrors.ErrMetricNotFound)
-	}
-	return fmt.Sprintf("%v", v), nil
-}
+	res := make([]metric.Metric, 0)
 
-func (s *MemStorage) GetAllGauge() map[string]float64 {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	res := make(map[string]float64, len(s.GaugeStor))
-	for k, v := range s.GaugeStor {
-		res[k] = v
+	for _, v := range s.MetricsStor {
+		res = append(res, v)
 	}
-	return res
-}
 
-func (s *MemStorage) GetAllCounter() map[string]int64 {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-	res := make(map[string]int64, len(s.GaugeStor))
-	for k, v := range s.CounterStor {
-		res[k] = v
-	}
 	return res
 }

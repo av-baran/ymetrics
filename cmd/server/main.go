@@ -1,34 +1,37 @@
 package main
 
 import (
-	"flag"
 	"log"
-	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/av-baran/ymetrics/internal/config"
+	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository/memstor"
 	"github.com/av-baran/ymetrics/internal/server"
 )
 
-var flagServerAddress string
-
-func parseFlags() {
-	flag.StringVar(&flagServerAddress, "a", "localhost:8080", "server address and port to listen")
-	flag.Parse()
-
-	if a, ok := os.LookupEnv("ADDRESS"); ok {
-		flagServerAddress = a
+func main() {
+	cfg, err := config.NewServerConfig()
+	if err != nil {
+		log.Fatalf("cannot init config: %s", err)
 	}
 
-}
-
-func main() {
-	parseFlags()
+	if err := logger.Init(cfg.LoggerConfig); err != nil {
+		log.Fatalf("cannot initialize logger: %s", err)
+	}
+	defer logger.Sync()
 
 	repo := memstor.New()
-	srv := server.New(repo)
+	srv := server.New(repo, cfg)
+	go srv.Run()
 
-	if err := http.ListenAndServe(flagServerAddress, srv.Router); err != nil {
-		log.Fatalf("cannot run server: %s", err)
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
+
+	if err := srv.Shutdown(); err != nil {
+		logger.Fatalf("cannot gracefully shutdown server: %w", err)
 	}
 }
