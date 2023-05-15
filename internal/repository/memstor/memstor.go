@@ -77,9 +77,6 @@ func (s *MemStorage) GetAllMetrics() ([]metric.Metric, error) {
 }
 
 func (s *MemStorage) UpdateBatch(metrics []metric.Metric) error {
-	memStorageSync.Lock()
-	defer memStorageSync.Unlock()
-
 	for _, m := range metrics {
 		if err := s.SetMetric(m); err != nil {
 			return fmt.Errorf("cannot update metrics with batch: %w", err)
