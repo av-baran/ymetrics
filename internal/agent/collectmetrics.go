@@ -159,6 +159,21 @@ func (a *Agent) collectMetrics() {
 			Value: getFloat64Ptr(randSrc.Float64()),
 			MType: metric.GaugeType,
 		},
+		{
+			ID:    "TotalMemory",
+			Value: getFloat64Ptr(randSrc.Float64()),
+			MType: metric.GaugeType,
+		},
+		{
+			ID:    "FreeMemory",
+			Value: getFloat64Ptr(randSrc.Float64()),
+			MType: metric.GaugeType,
+		},
+		{
+			ID:    "CPUutilization1",
+			Value: getFloat64Ptr(randSrc.Float64()),
+			MType: metric.GaugeType,
+		},
 	}
 }
 
