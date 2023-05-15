@@ -165,7 +165,7 @@ func (s *PsqlDB) InitStorage(params string) error {
         "id" VARCHAR(256) PRIMARY KEY,
         "value"  DOUBLE PRECISION,
         "type" TEXT,
-        "delta" INTEGER
+        "delta" BIGINT
       )`)
 	if err != nil {
 		return fmt.Errorf("cannot create tables: %w", err)
