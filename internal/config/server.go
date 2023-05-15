@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/av-baran/ymetrics/internal/logger"
 )
 
 const (
@@ -46,6 +48,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		v, err := strconv.Atoi(i)
 		if err != nil {
+			logger.Errorf("cannot parse config from env (STORE_INTERVAL): %s", err)
 			// return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
 		}
 		cfg.StoreInterval = v
@@ -62,6 +65,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		case "false", "False", "FALSE", "0":
 			cfg.Restore = false
 		default:
+			logger.Errorf("cannot parse config from env (RESTORE): wrong value")
 			// return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
 		}
 	}
