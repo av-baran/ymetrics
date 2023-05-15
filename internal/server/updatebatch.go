@@ -9,8 +9,6 @@ import (
 )
 
 func (s *Server) UpdateBatchJSONHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	readBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		sendError(w, "cannot read request body", err)
@@ -29,5 +27,4 @@ func (s *Server) UpdateBatchJSONHandler(w http.ResponseWriter, r *http.Request) 
 		sendError(w, "cannot update metrics", err)
 		return
 	}
-
 }
