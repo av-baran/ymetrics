@@ -29,8 +29,15 @@ func getErrorCode(e error) (statusCode int) {
 
 		statusCode = http.StatusBadRequest
 
-	case errors.Is(e, interrors.ErrMetricNotFound):
+	case
+		errors.Is(e, interrors.ErrMetricNotFound):
+
 		statusCode = http.StatusNotFound
+
+	case
+		errors.Is(e, interrors.ErrPingDB):
+
+		statusCode = http.StatusInternalServerError
 
 	default:
 		logger.Error("unknown internal error happens: %s", e)

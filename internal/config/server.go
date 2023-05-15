@@ -25,6 +25,7 @@ type ServerConfig struct {
 	FileStoragePath string
 	Restore         bool
 	ShutdownTimeout time.Duration
+	DatabaseDSN     string
 }
 
 func NewServerConfig() (*ServerConfig, error) {
@@ -65,6 +66,10 @@ func NewServerConfig() (*ServerConfig, error) {
 		}
 	}
 
+	if d, ok := os.LookupEnv("DATABASE_DSN"); ok {
+		cfg.DatabaseDSN = d
+	}
+
 	return cfg, nil
 }
 
@@ -74,6 +79,7 @@ func parseServerFlags(cfg *ServerConfig) {
 	flag.IntVar(&cfg.StoreInterval, "i", serverDefaultStoreInterval, "save to file interval")
 	flag.StringVar(&cfg.FileStoragePath, "f", serverDefaultStoragePath, "file storage path")
 	flag.BoolVar(&cfg.Restore, "r", serverDefaultRestore, "restore from file")
+	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database connection string")
 
 	flag.Parse()
 }
