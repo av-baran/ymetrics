@@ -81,6 +81,10 @@ func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", interrors.ErrMetricNotFound, err)
 	}
+	if err := row.Err(); err != nil {
+		return nil, fmt.Errorf("cannot get all metrics: %w", err)
+	}
+
 	if val.Valid {
 		m.Value = &val.Float64
 	}
@@ -98,6 +102,10 @@ func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot get all metrics: %w", err)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("cannot get all metrics: %w", err)
+	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var val sql.NullFloat64
