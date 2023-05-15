@@ -46,7 +46,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		v, err := strconv.Atoi(i)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
+			// return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
 		}
 		cfg.StoreInterval = v
 	}
@@ -62,7 +62,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		case "false", "False", "FALSE", "0":
 			cfg.Restore = false
 		default:
-			return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
+			// return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
 		}
 	}
 
