@@ -11,7 +11,12 @@ import (
 func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
-	metrics := s.Storage.GetAllMetrics()
+	metrics, err := s.Storage.GetAllMetrics()
+	if err != nil {
+		sendError(w, "cannot get all metrics", err)
+		return
+	}
+
 	strMetrics := make(map[string]string, len(metrics))
 
 	for _, v := range metrics {

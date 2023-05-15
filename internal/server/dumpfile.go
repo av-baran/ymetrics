@@ -57,7 +57,11 @@ func (s *Server) dumpfile() error {
 
 	encoder := json.NewEncoder(buf)
 
-	metrics := s.Storage.GetAllMetrics()
+	metrics, err := s.Storage.GetAllMetrics()
+	if err != nil {
+		return fmt.Errorf("cannot get all metrics: %w", err)
+	}
+
 	if err := encoder.Encode(&metrics); err != nil {
 		return fmt.Errorf("cannot encode metrics: %w", err)
 	}

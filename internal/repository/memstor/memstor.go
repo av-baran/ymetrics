@@ -63,7 +63,7 @@ func (s *MemStorage) GetMetric(id string, mType string) (*metric.Metric, error) 
 	return &m, nil
 }
 
-func (s *MemStorage) GetAllMetrics() []metric.Metric {
+func (s *MemStorage) GetAllMetrics() ([]metric.Metric, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	res := make([]metric.Metric, 0)
@@ -72,5 +72,17 @@ func (s *MemStorage) GetAllMetrics() []metric.Metric {
 		res = append(res, v)
 	}
 
-	return res
+	return res, nil
+}
+
+func (s *MemStorage) InitStorage(params string) error {
+	return nil
+}
+
+func (s *MemStorage) Shutdown() error {
+	return nil
+}
+
+func (s *MemStorage) Ping() error {
+	return nil
 }

@@ -8,7 +8,9 @@ import (
 
 	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/logger"
+	"github.com/av-baran/ymetrics/internal/repository"
 	"github.com/av-baran/ymetrics/internal/repository/memstor"
+	"github.com/av-baran/ymetrics/internal/repository/psql"
 	"github.com/av-baran/ymetrics/internal/server"
 )
 
@@ -23,7 +25,17 @@ func main() {
 	}
 	defer logger.Sync()
 
-	repo := memstor.New()
+	var repo repository.Storage
+	if cfg.DatabaseDSN != "" {
+		repo = psql.New()
+		err := repo.InitStorage(cfg.DatabaseDSN)
+		if err != nil {
+			logger.Fatalf("cannot init storage: %s", err)
+		}
+	} else {
+		repo = memstor.New()
+	}
+
 	srv := server.New(repo, cfg)
 	go srv.Run()
 
@@ -33,5 +45,9 @@ func main() {
 
 	if err := srv.Shutdown(); err != nil {
 		logger.Fatalf("cannot gracefully shutdown server: %w", err)
+	}
+
+	if err := repo.Shutdown(); err != nil {
+		logger.Fatalf("cannot gracefully shutdown storage: %w", err)
 	}
 }
