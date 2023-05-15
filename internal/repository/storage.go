@@ -10,4 +10,5 @@ type Storage interface {
 	SetMetric(metric.Metric) error
 	GetMetric(id string, mType string) (*metric.Metric, error)
 	GetAllMetrics() ([]metric.Metric, error)
+	UpdateBatch(m []metric.Metric) error
 }

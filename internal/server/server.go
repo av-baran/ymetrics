@@ -47,6 +47,10 @@ func (s *Server) registerRoutes() {
 		r.Post("/", s.UpdateMetricJSONHandler)
 		r.Post("/{type}/{name}/{value}", s.UpdateMetricHandler)
 	})
+	s.Router.Route("/updates", func(r chi.Router) {
+		r.Use(s.dumpFileMiddleware)
+		r.Post("/", s.UpdateBatchJSONHandler)
+	})
 }
 
 func (s *Server) Run() {

@@ -139,6 +139,15 @@ func (s *PsqlDB) Shutdown() error {
 	return nil
 }
 
+func (s *PsqlDB) UpdateBatch(metrics []metric.Metric) error {
+	for _, m := range metrics {
+		if err := s.SetMetric(m); err != nil {
+			return fmt.Errorf("cannot update metrics with batch: %w", err)
+		}
+	}
+	return nil
+}
+
 func (s *PsqlDB) InitStorage(params string) error {
 	db, err := sql.Open("pgx", params)
 	if err != nil {
