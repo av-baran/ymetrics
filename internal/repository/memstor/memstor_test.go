@@ -13,7 +13,6 @@ const (
 	unknownVal = uint32(1)
 )
 
-//FIXME как проще получить указатель на значение для поля структуры
 func getFloatPtr(v float64) *float64 {
 	return &v
 }
@@ -153,6 +152,7 @@ func TestMemStorage(t *testing.T) {
 		})
 	}
 
-	gotMetrics := s.GetAllMetrics()
+	gotMetrics, err := s.GetAllMetrics()
+	assert.NoError(t, err)
 	assert.ObjectsAreEqual(tAllMetric, gotMetrics)
 }
