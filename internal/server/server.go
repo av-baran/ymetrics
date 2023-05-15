@@ -43,7 +43,7 @@ func New(s repository.Storager, cfg *config.ServerConfig) *Server {
 
 func (s *Server) registerRoutes() {
 	s.Router.Get("/", s.GetAllMetricsHandler)
-	s.Router.Get("/ping/", s.PingDBHandler)
+	s.Router.Get("/ping", s.PingDBHandler)
 
 	s.Router.Post("/value/", s.GetMetricJSONHandler)
 	s.Router.Get("/value/{type}/{name}", s.GetMetricHandler)
