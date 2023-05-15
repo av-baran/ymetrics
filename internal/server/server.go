@@ -84,8 +84,11 @@ func (s *Server) Shutdown() error {
 
 	s.dumpfile()
 
-	if err := s.db.Close(); err != nil {
-		return fmt.Errorf("cannot close DB connection: %w", err)
+	if s.db != nil {
+		err := s.db.Close()
+		if err != nil {
+			return fmt.Errorf("cannot close DB connection: %w", err)
+		}
 	}
 
 	return nil
