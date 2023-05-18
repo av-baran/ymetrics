@@ -3,6 +3,7 @@ package psql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,27 @@ import (
 	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
+)
+
+const (
+	createTableStatement = `
+CREATE TABLE IF NOT EXISTS metrics (
+	"id" VARCHAR(256) PRIMARY KEY,
+	"value"  DOUBLE PRECISION,
+	"type" TEXT,
+	"delta" BIGINT);`
+
+	setStatement = `
+INSERT INTO metrics (id, type, value, delta) VALUES ($1, $2, $3, $4)
+	ON CONFLICT (id) DO UPDATE SET
+		value = EXCLUDED.value,
+		type  = EXCLUDED.type,
+		delta = CASE WHEN metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL
+			THEN coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0)
+			ELSE NULL END;`
+
+	getStatement    = `SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2 LIMIT 1;`
+	getAllStatement = `SELECT id, type, value, delta FROM metrics LIMIT 1000;`
 )
 
 type PsqlDB struct {
@@ -25,6 +47,9 @@ func New() *PsqlDB {
 func (s *PsqlDB) Init(cfg config.StorageConfig) error {
 	s.requestTimeout = cfg.RequestTimeout
 
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
 		return fmt.Errorf("cannot create new DB connection: %w", err)
@@ -32,19 +57,22 @@ func (s *PsqlDB) Init(cfg config.StorageConfig) error {
 	s.db = db
 
 	if err = s.Ping(); err != nil {
-		return fmt.Errorf("cannot init DB: %w", err)
+		return fmt.Errorf("DB is not available: %w", err)
 	}
 
-	// ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
-	// defer cancel()
-	ctx := context.Background()
-	err = interrors.RetryOnErr(
-		func() error {
-			return s.createTables(ctx)
-		})
+	stmt, err := s.db.PrepareContext(ctx, createTableStatement)
 	if err != nil {
-		return fmt.Errorf("cannot init DB: %w", err)
+		return fmt.Errorf("cannot prepare create table statements: %w", err)
 	}
+
+	err = interrors.RetryOnErr(func() error {
+		_, err = stmt.ExecContext(ctx)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("cannot init metric table: %w", err)
+	}
+
 	return nil
 }
 
@@ -52,26 +80,18 @@ func (s *PsqlDB) SetMetric(m metric.Metric) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 	defer cancel()
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	stmt, err := s.db.PrepareContext(ctx, setStatement)
 	if err != nil {
-		return fmt.Errorf("cannot begin tx: %w", err)
+		return fmt.Errorf("cannot prepare set metric statement: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, m.ID, m.MType, m.Value, m.Delta)
+	if err != nil {
+		return fmt.Errorf("cannot exec statement: %w", err)
 	}
 
-	_, err = tx.ExecContext(ctx, `
-INSERT INTO metrics (id, type, value, delta) VALUES ($1, $2, $3, $4)
-	ON CONFLICT (id) DO UPDATE SET
-		value = EXCLUDED.value,
-		type  = EXCLUDED.type, 
-		delta = CASE WHEN metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL
-			THEN coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0) 
-			ELSE NULL END;`,
-		m.ID, m.MType, m.Value, m.Delta,
-	)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("cannot exec query: %w", err)
-	}
-	return tx.Commit()
+	return nil
 }
 
 func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
@@ -80,18 +100,20 @@ func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
 
 	m := &metric.Metric{}
 
-	row := s.db.QueryRowContext(ctx,
-		`SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2`,
-		id, mType)
+	stmt, err := s.db.PrepareContext(ctx, getStatement)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get metric: %w", err)
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRowContext(ctx, id, mType)
 
 	var val sql.NullFloat64
 	var delta sql.NullInt64
-	err := row.Scan(&m.ID, &m.MType, &val, &delta)
+	err = row.Scan(&m.ID, &m.MType, &val, &delta)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", interrors.ErrMetricNotFound, err)
-	}
-	if err := row.Err(); err != nil {
-		return nil, fmt.Errorf("cannot get all metrics: %w", err)
+		resErr := errors.Join(interrors.ErrMetricNotFound, err)
+		return nil, resErr
 	}
 
 	if val.Valid {
@@ -100,38 +122,46 @@ func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
 	if delta.Valid {
 		m.Delta = &delta.Int64
 	}
+
 	return m, nil
 }
 
 func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
 	res := make([]metric.Metric, 0)
 
-	ctx := context.Background()
-	rows, err := s.db.QueryContext(ctx, "SELECT id, type, value, delta FROM metrics")
+	stmt, err := s.db.PrepareContext(ctx, getStatement)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get all metrics: %w", err)
+		return nil, fmt.Errorf("cannot prepare get all metrics statement: %w", err)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("cannot get all metrics: %w", err)
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot query all metrics: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var val sql.NullFloat64
 		var delta sql.NullInt64
-		m := &metric.Metric{}
+		m := metric.Metric{}
 
 		err := rows.Scan(&m.ID, &m.MType, &val, &delta)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get all metrics: %w", err)
+			return nil, fmt.Errorf("cannot scan query result: %w", err)
 		}
+
 		if val.Valid {
 			m.Value = &val.Float64
 		}
 		if delta.Valid {
 			m.Delta = &delta.Int64
 		}
-		res = append(res, *m)
+
+		res = append(res, m)
 	}
 
 	return res, nil
@@ -148,10 +178,10 @@ func (s *PsqlDB) Shutdown() error {
 	return nil
 }
 
-func (s *PsqlDB) UpdateBatch(metrics []metric.Metric) error {
+func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 	for _, m := range metrics {
 		if err := s.SetMetric(m); err != nil {
-			return fmt.Errorf("cannot update metrics with batch: %w", err)
+			return fmt.Errorf("cannot set metrics batch: %w", err)
 		}
 	}
 	return nil
@@ -166,22 +196,8 @@ func (s *PsqlDB) Ping() error {
 			return s.db.PingContext(ctx)
 		})
 	if err != nil {
-		return fmt.Errorf("%w: %w", interrors.ErrPingDB, err)
-	}
-
-	return nil
-}
-
-func (s *PsqlDB) createTables(ctx context.Context) error {
-	_, err := s.db.ExecContext(ctx,
-		`CREATE TABLE IF NOT EXISTS metrics (
-			"id" VARCHAR(256) PRIMARY KEY,
-			"value"  DOUBLE PRECISION,
-			"type" TEXT,
-			"delta" BIGINT)`,
-	)
-	if err != nil {
-		return fmt.Errorf("cannot create tables: %w", err)
+		resError := errors.Join(interrors.ErrPingDB, err)
+		return resError
 	}
 
 	return nil

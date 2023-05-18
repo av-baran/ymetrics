@@ -23,8 +23,8 @@ func (s *Server) UpdateBatchJSONHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := s.Storage.UpdateBatch(metrics); err != nil {
-		sendError(w, "cannot update metrics", err)
+	if err := s.Storage.SetMetricsBatch(metrics); err != nil {
+		sendError(w, "cannot set metrics batch", err)
 		return
 	}
 }

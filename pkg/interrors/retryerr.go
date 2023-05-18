@@ -16,7 +16,7 @@ func RetryOnErr(f func() error) error {
 		if resErr = f(); resErr == nil {
 			return resErr
 		}
-		logger.Errorf("got error: %s, retrying", resErr)
+		logger.Errorf("got retryable error: %s, attempt: %s/%s", resErr, try, backoffLimit)
 		time.Sleep(sleepTime)
 		sleepTime += timeInc
 	}
