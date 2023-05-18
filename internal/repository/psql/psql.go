@@ -64,6 +64,7 @@ func (s *PsqlDB) Init(cfg config.StorageConfig) error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare create table statements: %w", err)
 	}
+	defer stmt.Close()
 
 	err = interrors.RetryOnErr(func() error {
 		_, err = stmt.ExecContext(ctx)
@@ -132,7 +133,7 @@ func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
 
 	res := make([]metric.Metric, 0)
 
-	stmt, err := s.db.PrepareContext(ctx, getStatement)
+	stmt, err := s.db.PrepareContext(ctx, getAllStatement)
 	if err != nil {
 		return nil, fmt.Errorf("cannot prepare get all metrics statement: %w", err)
 	}
@@ -179,11 +180,34 @@ func (s *PsqlDB) Shutdown() error {
 }
 
 func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("cannot begin transaction: %w", err)
+	}
+
+	stmt, err := tx.PrepareContext(ctx, setStatement)
+	if err != nil {
+		return fmt.Errorf("cannot prepare set metric statement: %w", err)
+	}
+	defer stmt.Close()
+
 	for _, m := range metrics {
-		if err := s.SetMetric(m); err != nil {
-			return fmt.Errorf("cannot set metrics batch: %w", err)
+		_, err = tx.StmtContext(ctx, stmt).Exec(m.ID, m.MType, m.Value, m.Delta)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("cannot exec statement: %w", err)
 		}
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("cannot commit transaction: %w", err)
+	}
+
 	return nil
 }
 
