@@ -1,9 +1,12 @@
 package repository
 
-import "github.com/av-baran/ymetrics/internal/metric"
+import (
+	"github.com/av-baran/ymetrics/internal/config"
+	"github.com/av-baran/ymetrics/internal/metric"
+)
 
 type Storage interface {
-	InitStorage(params string) error
+	Init(config.StorageConfig) error
 	Ping() error
 	Shutdown() error
 

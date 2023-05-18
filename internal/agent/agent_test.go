@@ -86,21 +86,23 @@ func Test_collectMetrics(t *testing.T) {
 func Test_sendMetricOk(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  metric.Metric
+		Metric  []metric.Metric
 		wantErr bool
 	}{
 		{
 			name: "Correct type",
-			Metric: metric.Metric{
-				ID:    "knownMetric",
-				Value: getFloat64Ptr(22),
-				MType: metric.GaugeType,
+			Metric: []metric.Metric{
+				{
+					ID:    "knownMetric",
+					Value: getFloat64Ptr(22),
+					MType: metric.GaugeType,
+				},
 			},
 			wantErr: false,
 		},
 	}
 
-	srv := httpServerMock("/update/", http.StatusOK, "Ok")
+	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -114,7 +116,7 @@ func Test_sendMetricOk(t *testing.T) {
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got1 := a.sendMetricJSON(&tt.Metric)
+			got1 := a.sendBatchJSON(tt.Metric)
 			if tt.wantErr {
 				assert.Error(t, got1)
 			} else {
@@ -127,21 +129,23 @@ func Test_sendMetricOk(t *testing.T) {
 func Test_sendMetricErr(t *testing.T) {
 	tests := []struct {
 		name    string
-		Metric  metric.Metric
+		Metric  []metric.Metric
 		wantErr bool
 	}{
 		{
 			name: "Correct type",
-			Metric: metric.Metric{
-				ID:    "unknownMetric",
-				Value: getFloat64Ptr(22),
-				MType: metric.GaugeType,
+			Metric: []metric.Metric{
+				{
+					ID:    "unknownMetric",
+					Value: getFloat64Ptr(22),
+					MType: metric.GaugeType,
+				},
 			},
 			wantErr: false,
 		},
 	}
 
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
+	srv := httpServerMock("/updates/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -155,14 +159,14 @@ func Test_sendMetricErr(t *testing.T) {
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := a.sendMetricJSON(&tt.Metric)
+			got := a.sendBatchJSON(tt.Metric)
 			assert.Error(t, got)
 		})
 	}
 }
 
 func TestRun(t *testing.T) {
-	srv := httpServerMock("/update/", http.StatusOK, "Ok")
+	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -177,7 +181,7 @@ func TestRun(t *testing.T) {
 }
 
 func Test_dumpOk(t *testing.T) {
-	srv := httpServerMock("/update/", http.StatusOK, "Ok")
+	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -189,12 +193,12 @@ func Test_dumpOk(t *testing.T) {
 
 	a := NewAgent(testCfg)
 	a.collectMetrics()
-	err := a.dump()
+	err := a.batchDump()
 	assert.NoError(t, err)
 }
 
 func Test_dumpErr(t *testing.T) {
-	srv := httpServerMock("/update/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
+	srv := httpServerMock("/updates/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
 
@@ -206,7 +210,7 @@ func Test_dumpErr(t *testing.T) {
 
 	a := NewAgent(testCfg)
 	a.collectMetrics()
-	err := a.dump()
+	err := a.batchDump()
 	assert.Error(t, err)
 }
 

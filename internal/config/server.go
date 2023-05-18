@@ -16,21 +16,26 @@ const (
 	serverDefaultStoragePath     = "/tmp/metrics-db.json"
 	serverDefaultRestore         = true
 	serverDefaultShutdownTimeout = time.Second * 10
+
+	storageDefaultRequestTimeout = time.Second * 1
 )
 
 type ServerConfig struct {
 	ServerAddress string
+	StorageConfig StorageConfig
 	LoggerConfig  LoggerConfig
 
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
 	ShutdownTimeout time.Duration
-	DatabaseDSN     string
 }
 
 func NewServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{
+		StorageConfig: StorageConfig{
+			RequestTimeout: storageDefaultRequestTimeout,
+		},
 		LoggerConfig:    LoggerConfig{},
 		ShutdownTimeout: serverDefaultShutdownTimeout,
 	}
@@ -70,7 +75,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	}
 
 	if d, ok := os.LookupEnv("DATABASE_DSN"); ok {
-		cfg.DatabaseDSN = d
+		cfg.StorageConfig.DatabaseDSN = d
 	}
 
 	return cfg, nil
@@ -82,7 +87,7 @@ func parseServerFlags(cfg *ServerConfig) {
 	flag.IntVar(&cfg.StoreInterval, "i", serverDefaultStoreInterval, "save to file interval")
 	flag.StringVar(&cfg.FileStoragePath, "f", serverDefaultStoragePath, "file storage path")
 	flag.BoolVar(&cfg.Restore, "r", serverDefaultRestore, "restore from file")
-	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database connection string")
+	flag.StringVar(&cfg.StorageConfig.DatabaseDSN, "d", "", "database connection string")
 
 	flag.Parse()
 }

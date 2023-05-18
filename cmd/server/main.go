@@ -26,9 +26,9 @@ func main() {
 	defer logger.Sync()
 
 	var repo repository.Storage
-	if cfg.DatabaseDSN != "" {
+	if cfg.StorageConfig.DatabaseDSN != "" {
 		repo = psql.New()
-		err := repo.InitStorage(cfg.DatabaseDSN)
+		err := repo.Init(cfg.StorageConfig)
 		if err != nil {
 			logger.Fatalf("cannot init storage: %s", err)
 		}

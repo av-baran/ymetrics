@@ -8,72 +8,79 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
 type PsqlDB struct {
-	db *sql.DB
+	db             *sql.DB
+	requestTimeout time.Duration
 }
 
 func New() *PsqlDB {
 	return &PsqlDB{}
 }
 
-func (s *PsqlDB) SetMetric(m metric.Metric) error {
-	switch m.MType {
-	case metric.GaugeType:
-		if m.Value == nil {
-			return interrors.ErrInvalidMetricValue
-		}
-		tx, err := s.db.Begin()
-		if err != nil {
-			return fmt.Errorf("cannot begin tx: %w", err)
-		}
+func (s *PsqlDB) Init(cfg config.StorageConfig) error {
+	s.requestTimeout = cfg.RequestTimeout
 
-		ctx := context.Background()
-		_, err = tx.ExecContext(ctx,
-			"INSERT INTO metrics (id, type, value) VALUES ($1,$2,$3)"+
-				"ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value",
-			m.ID, m.MType, *m.Value)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("cannot exec query: %w", err)
-		}
-		return tx.Commit()
-
-	case metric.CounterType:
-		if m.Delta == nil {
-			return interrors.ErrInvalidMetricValue
-		}
-
-		tx, err := s.db.Begin()
-		if err != nil {
-			return fmt.Errorf("cannot begin tx: %w", err)
-		}
-
-		ctx := context.Background()
-		_, err = tx.ExecContext(ctx,
-			"INSERT INTO metrics (id, type, delta) VALUES ($1,$2,$3)"+
-				"ON CONFLICT (id) DO UPDATE SET delta = coalesce(metrics.delta, 0) + EXCLUDED.delta",
-			m.ID, m.MType, *m.Delta)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("cannot exec query: %w", err)
-		}
-		return tx.Commit()
-	default:
-		return interrors.ErrInvalidMetricType
+	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("cannot create new DB connection: %w", err)
 	}
+	s.db = db
+
+	if err = s.Ping(); err != nil {
+		return fmt.Errorf("cannot init DB: %w", err)
+	}
+
+	// ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	// defer cancel()
+	ctx := context.Background()
+	err = interrors.RetryOnErr(
+		func() error {
+			return s.createTables(ctx)
+		})
+	if err != nil {
+		return fmt.Errorf("cannot init DB: %w", err)
+	}
+	return nil
+}
+
+func (s *PsqlDB) SetMetric(m metric.Metric) error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("cannot begin tx: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `
+INSERT INTO metrics (id, type, value, delta) VALUES ($1,$2,$3,$4)
+	ON CONFLICT (id) DO UPDATE SET
+		value = EXCLUDED.value,
+		delta = coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0) WHERE
+			metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL;`,
+		m.ID, m.MType, m.Value, m.Delta,
+	)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("cannot exec query: %w", err)
+	}
+	return tx.Commit()
 }
 
 func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
 	m := &metric.Metric{}
 
-	ctx := context.Background()
 	row := s.db.QueryRowContext(ctx,
-		"SELECT id, type, value, delta "+
-			"FROM metrics WHERE id=$1 AND type=$2", id, mType)
+		`SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2`,
+		id, mType)
 
 	var val sql.NullFloat64
 	var delta sql.NullInt64
@@ -148,38 +155,31 @@ func (s *PsqlDB) UpdateBatch(metrics []metric.Metric) error {
 	return nil
 }
 
-func (s *PsqlDB) InitStorage(params string) error {
-	db, err := sql.Open("pgx", params)
-	if err != nil {
-		return fmt.Errorf("cannot create new DB connection: %w", err)
-	}
-	s.db = db
+func (s *PsqlDB) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	if err := s.Ping(); err != nil {
-		return fmt.Errorf("cannot init DB: %w", err)
-	}
-
-	ctx := context.Background()
-	// "id" INTEGER PRIMARY KEY,
-	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS metrics (
-        "id" VARCHAR(256) PRIMARY KEY,
-        "value"  DOUBLE PRECISION,
-        "type" TEXT,
-        "delta" BIGINT
-      )`)
+	err := interrors.RetryOnErr(
+		func() error {
+			return s.db.PingContext(ctx)
+		})
 	if err != nil {
-		return fmt.Errorf("cannot create tables: %w", err)
+		return fmt.Errorf("%w: %w", interrors.ErrPingDB, err)
 	}
 
 	return nil
 }
 
-func (s *PsqlDB) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	if err := s.db.PingContext(ctx); err != nil {
-		return fmt.Errorf("%w: %w", interrors.ErrPingDB, err)
+func (s *PsqlDB) createTables(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx,
+		`CREATE TABLE IF NOT EXISTS metrics (
+			"id" VARCHAR(256) PRIMARY KEY,
+			"value"  DOUBLE PRECISION,
+			"type" TEXT,
+			"delta" BIGINT)`,
+	)
+	if err != nil {
+		return fmt.Errorf("cannot create tables: %w", err)
 	}
 
 	return nil

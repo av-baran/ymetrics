@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
@@ -85,7 +86,7 @@ func (s *MemStorage) UpdateBatch(metrics []metric.Metric) error {
 	return nil
 }
 
-func (s *MemStorage) InitStorage(params string) error {
+func (s *MemStorage) Init(cfg config.StorageConfig) error {
 	return nil
 }
 
