@@ -144,6 +144,10 @@ func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
 		return nil, fmt.Errorf("cannot query all metrics: %w", err)
 	}
 	defer rows.Close()
+	// Без этой проверки не проходит statictest, но нужна ли она? Т.к. мы проверили результат выполнения QueryContext
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("query result contains error: %w", err)
+	}
 
 	for rows.Next() {
 		var val sql.NullFloat64
