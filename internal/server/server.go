@@ -59,7 +59,10 @@ func (s *Server) Run() {
 			logger.Errorf("cannot restore from backup: %s", err)
 		}
 	}
-	go s.syncfile()
+
+	if s.cfg.FileStoragePath != "" {
+		go s.syncfile()
+	}
 
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		logger.Fatalf("cannot run server: %s", err)
@@ -73,7 +76,9 @@ func (s *Server) Shutdown() error {
 		return fmt.Errorf("cannot gracefully shutdown server: %w", err)
 	}
 
-	s.dumpfile()
+	if s.cfg.FileStoragePath != "" {
+		s.dumpfile()
+	}
 
 	return nil
 }
