@@ -219,10 +219,9 @@ func (s *PsqlDB) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 	defer cancel()
 
-	err := interrors.RetryOnErr(
-		func() error {
-			return s.db.PingContext(ctx)
-		})
+	err := interrors.RetryOnErr(func() error {
+		return s.db.PingContext(ctx)
+	})
 	if err != nil {
 		resError := errors.Join(interrors.ErrPingDB, err)
 		return resError

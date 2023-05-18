@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/metric"
+	"github.com/av-baran/ymetrics/pkg/interrors"
+	"github.com/go-resty/resty/v2"
 )
 
 func (a *Agent) batchDump() error {
@@ -36,12 +38,16 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 		return fmt.Errorf("error while closing gz buffer: %w", err)
 	}
 
-	resp, err := a.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetHeader("Content-Encoding", "gzip").
-		SetBody(gzBuf).
-		// AddRetryCondition().
-		Post(a.cfg.GetURL() + "/updates/")
+	var resp *resty.Response
+	err := interrors.RetryOnErr(func() error {
+		var restyErr error
+		resp, restyErr = a.client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Content-Encoding", "gzip").
+			SetBody(gzBuf).
+			Post(a.cfg.GetURL() + "/updates/")
+		return restyErr
+	})
 	if err != nil {
 		return fmt.Errorf("cannot sent request; resty error: %w", err)
 	}
