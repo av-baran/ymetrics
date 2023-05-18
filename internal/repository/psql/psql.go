@@ -216,7 +216,7 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 }
 
 func (s *PsqlDB) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 	defer cancel()
 
 	err := interrors.RetryOnErr(

@@ -25,25 +25,21 @@ func (s *MemStorage) SetMetric(m metric.Metric) error {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 
-	switch m.MType {
-	case metric.GaugeType:
-		if m.Value == nil {
-			return interrors.ErrInvalidMetricValue
-		}
-		s.MetricsStor[m.ID] = m
-	case metric.CounterType:
-		if m.Delta == nil {
-			return interrors.ErrInvalidMetricValue
-		}
-		if s.MetricsStor[m.ID].Delta != nil {
-			currentValue := *s.MetricsStor[m.ID].Delta
-			newValue := currentValue + *m.Delta
-			m.Delta = &newValue
-		}
-		s.MetricsStor[m.ID] = m
-	default:
+	if m.MType != metric.GaugeType && m.MType != metric.CounterType {
 		return interrors.ErrInvalidMetricType
 	}
+
+	var currentDelta, newDelta int64
+	if m.Delta != nil {
+		newDelta = *m.Delta
+	}
+	if s.MetricsStor[m.ID].Delta != nil {
+		currentDelta = newDelta + *s.MetricsStor[m.ID].Delta
+		m.Delta = &currentDelta
+	}
+
+	s.MetricsStor[m.ID] = m
+
 	return nil
 }
 
