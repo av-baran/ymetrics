@@ -58,11 +58,13 @@ func (s *PsqlDB) SetMetric(m metric.Metric) error {
 	}
 
 	_, err = tx.ExecContext(ctx, `
-INSERT INTO metrics (id, type, value, delta) VALUES ($1,$2,$3,$4)
+INSERT INTO metrics (id, type, value, delta) VALUES ($1, $2, $3, $4)
 	ON CONFLICT (id) DO UPDATE SET
 		value = EXCLUDED.value,
-		delta = coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0) WHERE
-			metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL;`,
+		type  = EXCLUDED.type, 
+		delta = CASE WHEN metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL
+			THEN coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0) 
+			ELSE NULL END;`,
 		m.ID, m.MType, m.Value, m.Delta,
 	)
 	if err != nil {
