@@ -29,13 +29,13 @@ func (s *MemStorage) SetMetric(m metric.Metric) error {
 		return interrors.ErrInvalidMetricType
 	}
 
-	var currentDelta, newDelta int64
+	var resultDelta, mDelta int64
 	if m.Delta != nil {
-		newDelta = *m.Delta
+		mDelta = *m.Delta
 	}
 	if s.MetricsStor[m.ID].Delta != nil {
-		currentDelta = newDelta + *s.MetricsStor[m.ID].Delta
-		m.Delta = &currentDelta
+		resultDelta = mDelta + *s.MetricsStor[m.ID].Delta
+		m.Delta = &resultDelta
 	}
 
 	s.MetricsStor[m.ID] = m
