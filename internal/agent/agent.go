@@ -37,7 +37,7 @@ func (a *Agent) Run() {
 			a.collectMetrics()
 		case <-reportTicker.C:
 			if err := a.batchDump(); err != nil {
-				logger.Fatalf("cannot dump metrics to server: %s", err)
+				logger.Errorf("cannot dump metrics to server: %s", err)
 			}
 		case <-done:
 			running = false
