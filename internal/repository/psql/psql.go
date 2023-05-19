@@ -31,8 +31,8 @@ INSERT INTO metrics (id, type, value, delta) VALUES ($1, $2, $3, $4)
 			THEN coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0)
 			ELSE NULL END;`
 
-	getStatement    = `SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2 LIMIT 1;`
-	getAllStatement = `SELECT id, type, value, delta FROM metrics LIMIT 1000;`
+	getStatement    = `SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2;`
+	getAllStatement = `SELECT id, type, value, delta FROM metrics;`
 )
 
 type PsqlDB struct {
