@@ -70,12 +70,13 @@ func (s *Server) dumpfile() error {
 }
 
 func (s *Server) syncfile() {
-	if s.cfg.StoreInterval == 0 {
+	storeInterval := s.cfg.GetStoreInterval()
+	if storeInterval <= 0 {
 		logger.Info("Store interval is 0. Periodical sync has been disabled.")
 		return
 	}
 
-	syncTicker := time.NewTicker(s.cfg.StoreInterval)
+	syncTicker := time.NewTicker(storeInterval)
 	defer syncTicker.Stop()
 
 	for range syncTicker.C {
@@ -87,7 +88,8 @@ func (s *Server) syncfile() {
 func (s *Server) dumpFileMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
-		if s.cfg.StoreInterval == 0 {
+		storeInterval := s.cfg.GetStoreInterval()
+		if storeInterval == 0 {
 			if s.cfg.FileStoragePath == "" {
 				return
 			}
