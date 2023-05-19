@@ -1,8 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/config"
@@ -81,4 +84,28 @@ func (s *Server) Shutdown() error {
 	}
 
 	return nil
+}
+
+func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := s.cfg.SignSecretKey
+		if key == "" {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			sendError(w, "cannot read request body", err)
+			return
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+		if hmac.Equal([]byte(key), body) {
+			h.ServeHTTP(w, r)
+		} else {
+			sendError(w, "cannot close request body", err)
+			return
+		}
+	})
 }
