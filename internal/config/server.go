@@ -6,18 +6,19 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
 const (
 	serverDefaultServerAddress   = "localhost:8080"
 	serverDefaultLogLevel        = "debug"
-	serverDefaultStoreInterval   = 300
+	serverDefaultStoreInterval   = "300s"
 	serverDefaultStoragePath     = "/tmp/metrics-db.json"
 	serverDefaultRestore         = true
-	serverDefaultShutdownTimeout = time.Second * 10
+	serverDefaultShutdownTimeout = 10 * time.Second
 
-	storageDefaultRequestTimeout = time.Second * 1
+	storageDefaultRequestTimeout = 1 * time.Second
 )
 
 type ServerConfig struct {
@@ -25,7 +26,7 @@ type ServerConfig struct {
 	StorageConfig StorageConfig
 	LoggerConfig  LoggerConfig
 
-	StoreInterval   int
+	StoreInterval   time.Duration
 	FileStoragePath string
 	Restore         bool
 	ShutdownTimeout time.Duration
@@ -50,10 +51,9 @@ func NewServerConfig() (*ServerConfig, error) {
 	}
 
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
-		v, err := strconv.Atoi(i)
+		v, err := str2Interval(i)
 		if err != nil {
-			log.Printf("cannot parse config from env (STORE_INTERVAL): %s", err)
-			// return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
+			return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
 		}
 		cfg.StoreInterval = v
 	}
@@ -69,8 +69,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		case "false", "False", "FALSE", "0":
 			cfg.Restore = false
 		default:
-			log.Printf("cannot parse config from env (RESTORE): wrong value")
-			// return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
+			return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
 		}
 	}
 
@@ -81,19 +80,47 @@ func NewServerConfig() (*ServerConfig, error) {
 	return cfg, nil
 }
 
-func parseServerFlags(cfg *ServerConfig) {
+func parseServerFlags(cfg *ServerConfig) error {
 	flag.StringVar(&cfg.ServerAddress, "a", serverDefaultServerAddress, "server address and port to listen")
 	flag.StringVar(&cfg.LoggerConfig.Level, "l", serverDefaultLogLevel, "log level")
-	flag.IntVar(&cfg.StoreInterval, "i", serverDefaultStoreInterval, "save to file interval")
 	flag.StringVar(&cfg.FileStoragePath, "f", serverDefaultStoragePath, "file storage path")
 	flag.BoolVar(&cfg.Restore, "r", serverDefaultRestore, "restore from file")
 	flag.StringVar(&cfg.StorageConfig.DatabaseDSN, "d", "", "database connection string")
 
-	flag.Parse()
+	// Переделал потому что в тестах 10-го инкремента в параметрах передают строку "10s" и заранее
+	// неизвестно, что будет передано во флаге, строка подходящяя для time.Duration или просто целое.
+	var storeIntervalFlag string
+	flag.StringVar(&storeIntervalFlag, "i", serverDefaultStoreInterval, "save to file interval")
+	s, err := str2Interval(storeIntervalFlag)
+	if err != nil {
+		return fmt.Errorf("cannot parse store interval flag: %w", err)
+	}
+	cfg.StoreInterval = s
+	return nil
 }
 
-func (c *ServerConfig) GetStoreInterval() time.Duration {
-	return time.Duration(c.StoreInterval) * time.Second
+func str2Interval(s string) (time.Duration, error) {
+	const parseError = "time: missing unit in duration"
+
+	interval, err := time.ParseDuration(s)
+	if err == nil {
+		return interval, err
+	} else if !strings.Contains(err.Error(), parseError) {
+		return 0, fmt.Errorf("cannot parse string to interval: %w", err)
+	}
+	log.Printf(`%s, trying to parse string as integer number of seconds`, err)
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse string to interval: %w", err)
+	}
+
+	if i < 0 {
+		return 0, fmt.Errorf("interval shouldn't be negative: %w", err)
+	}
+	interval = time.Duration(i) * time.Second
+
+	return interval, nil
 }
 
 func (c *ServerConfig) IsValidStoreFile() error {
