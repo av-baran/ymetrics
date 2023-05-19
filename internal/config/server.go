@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -49,13 +50,21 @@ func NewServerConfig() (*ServerConfig, error) {
 		cfg.LoggerConfig.Level = l
 	}
 
+	// в тестах 10-го инкремента в параметрах передают строку "2s", до этого целое число
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
-		v, err := strconv.Atoi(i)
-		if err != nil {
-			log.Printf("cannot parse config from env (STORE_INTERVAL): %s", err)
-			// return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
+		d, err := time.ParseDuration(i)
+		if !strings.Contains(err.Error(), "time: missing unit in duration") {
+			return nil, fmt.Errorf("cannot parse string to interval: %w", err)
+		} else if err != nil {
+			log.Printf(`%s, trying to parse string as integer number of seconds`, err)
+			v, err := strconv.Atoi(i)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
+			}
+			cfg.StoreInterval = v
+		} else {
+			cfg.StoreInterval = int(d.Seconds())
 		}
-		cfg.StoreInterval = v
 	}
 
 	if p, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
@@ -69,8 +78,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		case "false", "False", "FALSE", "0":
 			cfg.Restore = false
 		default:
-			log.Printf("cannot parse config from env (RESTORE): wrong value")
-			// return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
+			return nil, fmt.Errorf("cannot parse config from env (RESTORE): wrong value")
 		}
 	}
 
