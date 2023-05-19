@@ -50,7 +50,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		cfg.LoggerConfig.Level = l
 	}
 
-	// в тестах 10-го инкремента в параметрах передают строку "2s", до этого целое число
+	// в тестах 10-го инкремента в параметрах передаeтся строка "10s", до этого целое число
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		d, err := time.ParseDuration(i)
 		if !strings.Contains(err.Error(), "time: missing unit in duration") {

@@ -14,7 +14,7 @@ import (
 func main() {
 	cfg, err := config.NewAgentConfig()
 	if err != nil {
-		log.Printf("cannot init config: %s", err)
+		log.Fatalf("cannot init config: %s", err)
 	}
 
 	if err := logger.Init(cfg.LoggerConfig); err != nil {
