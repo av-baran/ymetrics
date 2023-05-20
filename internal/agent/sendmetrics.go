@@ -5,11 +5,11 @@ import (
 	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-resty/resty/v2"
@@ -21,6 +21,7 @@ func (a *Agent) batchDump() error {
 	if err := a.sendBatchJSON(collectedMetrics); err != nil {
 		return fmt.Errorf("cannot send metrics batch: %w", err)
 	}
+
 	return nil
 }
 
@@ -38,7 +39,8 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 
 	if a.cfg.SignSecretKey != "" {
 		sign := signBody(a.cfg.SignSecretKey, buf.Bytes())
-		headers["HashSHA256"] = sign
+		headerValue := hex.EncodeToString(sign)
+		headers["HashSHA256"] = headerValue
 	}
 
 	var resp *resty.Response
@@ -50,6 +52,7 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 			Post(a.cfg.GetURL() + "/updates/")
 		return restyErr
 	})
+
 	if err != nil {
 		return fmt.Errorf("cannot sent request; resty error: %w", err)
 	}
@@ -80,12 +83,10 @@ func createRequestBody(metrics []metric.Metric) (*bytes.Buffer, error) {
 	return gzBuf, nil
 }
 
-func signBody(key string, body []byte) string {
-
+func signBody(key string, body []byte) []byte {
 	h := hmac.New(sha256.New, []byte(key))
 	h.Write(body)
 	result := h.Sum(nil)
-	logger.Info("result: %v", string(result))
 
-	return string(result)
+	return result
 }

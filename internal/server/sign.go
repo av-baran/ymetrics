@@ -1,0 +1,91 @@
+package server
+
+import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/av-baran/ymetrics/internal/logger"
+	"github.com/av-baran/ymetrics/pkg/interrors"
+)
+
+func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := s.cfg.SignSecretKey
+		logger.Info("we in the checkSignMiddleware!")
+		if key == "" {
+			logger.Infof("key is empty keep running without sign check")
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			sendError(w, "cannot read request body", err)
+			return
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+		gotHash := r.Header.Get("HashSHA256")
+		decodedHash, err := hex.DecodeString(gotHash)
+		if err != nil {
+			sendError(w, "cannot decode sign", err)
+			return
+		}
+
+		sign := signBody(s.cfg.SignSecretKey, body)
+		if hmac.Equal(decodedHash, sign) {
+			h.ServeHTTP(w, r)
+		} else {
+			sendError(w, "", interrors.ErrInvalidSign)
+			return
+		}
+	})
+}
+
+func (s *Server) addSignMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := s.cfg.SignSecretKey
+		logger.Info("we in the checkSignMiddleware!")
+		if key == "" {
+			logger.Infof("key is empty keep running without sign check")
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		signWriter := &SignResponseWriter{
+			ResponseWriter: w,
+		}
+
+		h.ServeHTTP(signWriter, r)
+	})
+}
+
+func signBody(key string, body []byte) []byte {
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write(body)
+	result := h.Sum(nil)
+
+	return result
+}
+
+type SignResponseWriter struct {
+	http.ResponseWriter
+	encodedSign   string
+	signSecretKey string
+}
+
+func (r *SignResponseWriter) Write(b []byte) (int, error) {
+	sign := signBody(r.signSecretKey, b)
+	r.encodedSign = hex.EncodeToString(sign)
+	size, err := r.ResponseWriter.Write(b)
+	return size, err
+}
+
+func (r *SignResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.Header().Set("HashSHA256", r.encodedSign)
+	r.ResponseWriter.WriteHeader(statusCode)
+}

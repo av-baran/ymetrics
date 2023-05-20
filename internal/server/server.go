@@ -1,11 +1,8 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/config"
@@ -23,11 +20,6 @@ type Server struct {
 
 func New(s repository.Storage, cfg *config.ServerConfig) *Server {
 	router := chi.NewRouter()
-	router.Use(
-		gzMiddleware,
-		logger.RequestLogMiddlware,
-		logger.ResponseLogMiddleware,
-	)
 	server := &Server{Storage: s, Router: router, cfg: cfg}
 	server.registerRoutes()
 	server.httpServer = &http.Server{
@@ -39,20 +31,33 @@ func New(s repository.Storage, cfg *config.ServerConfig) *Server {
 }
 
 func (s *Server) registerRoutes() {
-	s.Router.Get("/", s.GetAllMetricsHandler)
-	s.Router.Get("/ping", s.PingDBHandler)
+	s.Router.Route("/", func(r chi.Router) {
+		r.Use(
+			s.checkSignMiddleware,
+			gzMiddleware,
+			logger.RequestLogMiddlware,
+			logger.ResponseLogMiddleware,
+			s.addSignMiddleware,
+		)
 
-	s.Router.Post("/value/", s.GetMetricJSONHandler)
-	s.Router.Get("/value/{type}/{name}", s.GetMetricHandler)
+		r.Get("/", s.GetAllMetricsHandler)
+		r.Get("/ping", s.PingDBHandler)
 
-	s.Router.Route("/update", func(r chi.Router) {
-		r.Use(s.dumpFileMiddleware)
-		r.Post("/", s.UpdateMetricJSONHandler)
-		r.Post("/{type}/{name}/{value}", s.UpdateMetricHandler)
-	})
-	s.Router.Route("/updates", func(r chi.Router) {
-		r.Use(s.dumpFileMiddleware)
-		r.Post("/", s.UpdateBatchJSONHandler)
+		r.Route("/update", func(r chi.Router) {
+			r.Use(s.dumpFileMiddleware)
+			r.Post("/", s.UpdateMetricJSONHandler)
+			r.Post("/{type}/{name}/{value}", s.UpdateMetricHandler)
+		})
+
+		r.Route("/updates", func(r chi.Router) {
+			r.Use(s.dumpFileMiddleware)
+			r.Post("/", s.UpdateBatchJSONHandler)
+		})
+
+		r.Route("/value", func(r chi.Router) {
+			r.Post("/", s.GetMetricJSONHandler)
+			r.Get("/{type}/{name}", s.GetMetricHandler)
+		})
 	})
 }
 
@@ -84,28 +89,4 @@ func (s *Server) Shutdown() error {
 	}
 
 	return nil
-}
-
-func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := s.cfg.SignSecretKey
-		if key == "" {
-			h.ServeHTTP(w, r)
-			return
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			sendError(w, "cannot read request body", err)
-			return
-		}
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-		if hmac.Equal([]byte(key), body) {
-			h.ServeHTTP(w, r)
-		} else {
-			sendError(w, "cannot close request body", err)
-			return
-		}
-	})
 }
