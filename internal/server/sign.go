@@ -12,10 +12,15 @@ import (
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
+type SignResponseWriter struct {
+	http.ResponseWriter
+	encodedSign   string
+	signSecretKey string
+}
+
 func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := s.cfg.SignSecretKey
-		logger.Info("we in the checkSignMiddleware!")
 		if key == "" {
 			logger.Infof("key is empty keep running without sign check")
 			h.ServeHTTP(w, r)
@@ -49,9 +54,8 @@ func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 func (s *Server) addSignMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := s.cfg.SignSecretKey
-		logger.Info("we in the checkSignMiddleware!")
 		if key == "" {
-			logger.Infof("key is empty keep running without sign check")
+			logger.Infof("key is empty keep running without adding sign")
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -64,20 +68,6 @@ func (s *Server) addSignMiddleware(h http.Handler) http.Handler {
 	})
 }
 
-func signBody(key string, body []byte) []byte {
-	h := hmac.New(sha256.New, []byte(key))
-	h.Write(body)
-	result := h.Sum(nil)
-
-	return result
-}
-
-type SignResponseWriter struct {
-	http.ResponseWriter
-	encodedSign   string
-	signSecretKey string
-}
-
 func (r *SignResponseWriter) Write(b []byte) (int, error) {
 	sign := signBody(r.signSecretKey, b)
 	r.encodedSign = hex.EncodeToString(sign)
@@ -88,4 +78,12 @@ func (r *SignResponseWriter) Write(b []byte) (int, error) {
 func (r *SignResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.Header().Set("HashSHA256", r.encodedSign)
 	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func signBody(key string, body []byte) []byte {
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write(body)
+	result := h.Sum(nil)
+
+	return result
 }

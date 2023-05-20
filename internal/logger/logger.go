@@ -42,7 +42,6 @@ func Init(cfg config.LoggerConfig) error {
 
 func RequestLogMiddlware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("we in the RequestLogMiddleware!")
 		start := time.Now()
 		uri := r.RequestURI
 		method := r.Method
@@ -61,7 +60,6 @@ func RequestLogMiddlware(h http.Handler) http.Handler {
 
 func ResponseLogMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("we in the ResponseLogMiddleware!")
 		respLogger := logResponseWriter{
 			ResponseWriter: w,
 			responseData:   &responseData{},
