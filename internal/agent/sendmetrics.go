@@ -26,26 +26,25 @@ func (a *Agent) batchDump() error {
 }
 
 func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
+	headers := map[string]string{
+		"Content-Type":     "application/json",
+		"Content-Encoding": "gzip",
+	}
 
 	buf, err := createRequestJSON(metrics)
 	if err != nil {
 		return fmt.Errorf("cannot create request body: %w", err)
 	}
 
-	body, err := compressBuffer(buf)
-	if err != nil {
-		return fmt.Errorf("cannot compress request body: %w", err)
-	}
-
-	headers := map[string]string{
-		"Content-Type":     "application/json",
-		"Content-Encoding": "gzip",
-	}
-
 	if a.cfg.SignSecretKey != "" {
 		sign := signBody(a.cfg.SignSecretKey, buf.Bytes())
 		headerValue := hex.EncodeToString(sign)
 		headers["HashSHA256"] = headerValue
+	}
+
+	body, err := compressBuffer(buf)
+	if err != nil {
+		return fmt.Errorf("cannot compress request body: %w", err)
 	}
 
 	var resp *resty.Response
