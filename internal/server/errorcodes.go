@@ -11,6 +11,7 @@ import (
 )
 
 func sendError(w http.ResponseWriter, msg string, e error) {
+	w.Header().Set("Content-Type", "application/json")
 	errorMsg := fmt.Sprintf("%s: %s", msg, e)
 	logger.Error(errorMsg)
 	http.Error(w, errorMsg, getErrorCode(e))

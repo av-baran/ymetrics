@@ -33,8 +33,8 @@ func New(s repository.Storage, cfg *config.ServerConfig) *Server {
 func (s *Server) registerRoutes() {
 	s.Router.Route("/", func(r chi.Router) {
 		r.Use(
-			s.checkSignMiddleware,
 			gzMiddleware,
+			s.checkSignMiddleware,
 			logger.RequestLogMiddlware,
 			logger.ResponseLogMiddleware,
 			s.addSignMiddleware,

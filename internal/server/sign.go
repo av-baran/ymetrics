@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/av-baran/ymetrics/internal/logger"
@@ -45,7 +46,8 @@ func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 		if hmac.Equal(decodedHash, sign) {
 			h.ServeHTTP(w, r)
 		} else {
-			sendError(w, "", interrors.ErrInvalidSign)
+			log.Printf("got hash: %s; want hash: %s", gotHash, hex.EncodeToString(sign))
+			sendError(w, "cannot handle request", interrors.ErrInvalidSign)
 			return
 		}
 	})

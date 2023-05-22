@@ -27,9 +27,14 @@ func (a *Agent) batchDump() error {
 
 func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 
-	buf, err := createRequestBody(metrics)
+	buf, err := createRequestJSON(metrics)
 	if err != nil {
 		return fmt.Errorf("cannot create request body: %w", err)
+	}
+
+	body, err := compressBuffer(buf)
+	if err != nil {
+		return fmt.Errorf("cannot compress request body: %w", err)
 	}
 
 	headers := map[string]string{
@@ -48,7 +53,7 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 		var restyErr error
 		resp, restyErr = a.client.R().
 			SetHeaders(headers).
-			SetBody(buf).
+			SetBody(body).
 			Post(a.cfg.GetURL() + "/updates/")
 		return restyErr
 	})
@@ -64,13 +69,7 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 	return nil
 }
 
-func createRequestBody(metrics []metric.Metric) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	if err := encoder.Encode(metrics); err != nil {
-		return nil, fmt.Errorf("cannot encode metrics: %w", err)
-	}
-
+func compressBuffer(buf *bytes.Buffer) (*bytes.Buffer, error) {
 	gzBuf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(gzBuf)
 	if _, err := zb.Write(buf.Bytes()); err != nil {
@@ -81,6 +80,15 @@ func createRequestBody(metrics []metric.Metric) (*bytes.Buffer, error) {
 	}
 
 	return gzBuf, nil
+}
+
+func createRequestJSON(metrics []metric.Metric) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	if err := encoder.Encode(metrics); err != nil {
+		return nil, fmt.Errorf("cannot encode metrics: %w", err)
+	}
+	return &buf, nil
 }
 
 func signBody(key string, body []byte) []byte {
