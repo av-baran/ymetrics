@@ -93,7 +93,9 @@ func (s *Server) dumpFileMiddleware(h http.Handler) http.Handler {
 			if s.cfg.FileStoragePath == "" {
 				return
 			}
-			s.dumpfile()
+			if err := s.dumpfile(); err != nil {
+				logger.Fatalf("cannot sync backup file: %s", err)
+			}
 		}
 	})
 }

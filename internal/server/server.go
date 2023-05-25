@@ -77,7 +77,9 @@ func (s *Server) Shutdown() error {
 	}
 
 	if s.cfg.FileStoragePath != "" {
-		s.dumpfile()
+		if err := s.dumpfile(); err != nil {
+			logger.Fatalf("cannot sync backup file: %s", err)
+		}
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -14,30 +15,9 @@ import (
 	"github.com/av-baran/ymetrics/pkg/interrors"
 )
 
-const (
-	createTableStatement = `
-CREATE TABLE IF NOT EXISTS metrics (
-	"id" VARCHAR(256) PRIMARY KEY,
-	"value"  DOUBLE PRECISION,
-	"type" TEXT,
-	"delta" BIGINT);`
-
-	setStatement = `
-INSERT INTO metrics (id, type, value, delta) VALUES ($1, $2, $3, $4)
-	ON CONFLICT (id) DO UPDATE SET
-		value = EXCLUDED.value,
-		type  = EXCLUDED.type,
-		delta = CASE WHEN metrics.delta IS NOT NULL OR EXCLUDED.delta IS NOT NULL
-			THEN coalesce(metrics.delta, 0) + coalesce(EXCLUDED.delta, 0)
-			ELSE NULL END;`
-
-	getStatement    = `SELECT id, type, value, delta FROM metrics WHERE id=$1 AND type=$2;`
-	getAllStatement = `SELECT id, type, value, delta FROM metrics;`
-)
-
 type PsqlDB struct {
-	db             *sql.DB
-	requestTimeout time.Duration
+	db           *sql.DB
+	queryTimeout time.Duration
 }
 
 func New() *PsqlDB {
@@ -45,10 +25,7 @@ func New() *PsqlDB {
 }
 
 func (s *PsqlDB) Init(cfg config.StorageConfig) error {
-	s.requestTimeout = cfg.RequestTimeout
-
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
-	defer cancel()
+	s.queryTimeout = cfg.RequestTimeout
 
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
@@ -60,34 +37,29 @@ func (s *PsqlDB) Init(cfg config.StorageConfig) error {
 		return fmt.Errorf("DB is not available: %w", err)
 	}
 
-	stmt, err := s.db.PrepareContext(ctx, createTableStatement)
-	if err != nil {
-		return fmt.Errorf("cannot prepare create table statements: %w", err)
-	}
-	defer stmt.Close()
-
-	err = interrors.RetryOnErr(func() error {
-		_, err = stmt.ExecContext(ctx)
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("cannot init metric table: %w", err)
+	if err = s.applyMigrations(); err != nil {
+		return fmt.Errorf("cannot apply migrations: %w", err)
 	}
 
 	return nil
 }
 
 func (s *PsqlDB) SetMetric(m metric.Metric) error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
 
-	stmt, err := s.db.PrepareContext(ctx, setStatement)
+	stmtString := fmt.Sprintf(setStatement, "($1, $2, $3, $4)")
+
+	stmt, err := s.db.PrepareContext(ctx, stmtString)
 	if err != nil {
 		return fmt.Errorf("cannot prepare set metric statement: %w", err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, m.ID, m.MType, m.Value, m.Delta)
+	err = interrors.RetryOnErr(func() error {
+		_, err = stmt.ExecContext(ctx, m.ID, m.MType, m.Value, m.Delta)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("cannot exec statement: %w", err)
 	}
@@ -96,7 +68,7 @@ func (s *PsqlDB) SetMetric(m metric.Metric) error {
 }
 
 func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
 
 	m := &metric.Metric{}
@@ -128,7 +100,7 @@ func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
 }
 
 func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
 
 	res := make([]metric.Metric, 0)
@@ -143,7 +115,6 @@ func (s *PsqlDB) GetAllMetrics() ([]metric.Metric, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot query all metrics: %w", err)
 	}
-	// Без этой проверки не проходит statictest, но нужна ли она? Т.к. мы проверили результат выполнения QueryContext
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("query result contains error: %w", err)
 	}
@@ -184,31 +155,45 @@ func (s *PsqlDB) Shutdown() error {
 }
 
 func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
+
+	queryValues := make([]string, 0, len(metrics))
+	queryArgs := make([]interface{}, 0, len(metrics)*4)
+	for i, m := range metrics {
+		queryValues = append(queryValues, fmt.Sprintf(
+			"($%d, $%d, $%d, $%d)",
+			i*4+1, i*4+2, i*4+3, i*4+4,
+		))
+		queryArgs = append(queryArgs, m.ID)
+		queryArgs = append(queryArgs, m.MType)
+		queryArgs = append(queryArgs, m.Value)
+		queryArgs = append(queryArgs, m.Delta)
+	}
+
+	stmtString := fmt.Sprintf(setStatement, strings.Join(queryValues, ","))
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("cannot begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, setStatement)
+	stmt, err := tx.PrepareContext(ctx, stmtString)
 	if err != nil {
 		return fmt.Errorf("cannot prepare set metric statement: %w", err)
 	}
 	defer stmt.Close()
 
-	for _, m := range metrics {
-		_, err = tx.StmtContext(ctx, stmt).Exec(m.ID, m.MType, m.Value, m.Delta)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("cannot exec statement: %w", err)
-		}
+	err = interrors.RetryOnErr(func() error {
+		_, err = tx.StmtContext(ctx, stmt).Exec(queryArgs...)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("cannot exec statement: %w", err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
+	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("cannot commit transaction: %w", err)
 	}
 
@@ -216,7 +201,7 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 }
 
 func (s *PsqlDB) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
 
 	err := interrors.RetryOnErr(func() error {
@@ -225,6 +210,27 @@ func (s *PsqlDB) Ping() error {
 	if err != nil {
 		resError := errors.Join(interrors.ErrPingDB, err)
 		return resError
+	}
+
+	return nil
+}
+
+func (s *PsqlDB) applyMigrations() error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
+	defer cancel()
+
+	stmt, err := s.db.PrepareContext(ctx, createTableStatement)
+	if err != nil {
+		return fmt.Errorf("cannot prepare create table statements: %w", err)
+	}
+	defer stmt.Close()
+
+	err = interrors.RetryOnErr(func() error {
+		_, err = stmt.ExecContext(ctx)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("cannot init metric table: %w", err)
 	}
 
 	return nil
