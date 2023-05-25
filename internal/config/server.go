@@ -18,7 +18,7 @@ const (
 	serverDefaultRestore         = true
 	serverDefaultShutdownTimeout = time.Second * 10
 
-	storageDefaultRequestTimeout = time.Second * 1
+	storageDefaultRequestTimeout = time.Second * 10
 )
 
 type ServerConfig struct {
@@ -35,7 +35,8 @@ type ServerConfig struct {
 func NewServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{
 		StorageConfig: StorageConfig{
-			RequestTimeout: storageDefaultRequestTimeout,
+			SingleRequestTimeout: storageDefaultRequestTimeout,
+			BatchRequestTimeout:  storageDefaultRequestTimeout * 10,
 		},
 		LoggerConfig:    LoggerConfig{},
 		ShutdownTimeout: serverDefaultShutdownTimeout,
