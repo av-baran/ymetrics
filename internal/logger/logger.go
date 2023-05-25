@@ -31,6 +31,7 @@ func Init(cfg config.LoggerConfig) error {
 	zapCfg := zap.NewProductionConfig()
 	zapCfg.Level = lvl
 	zapCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	zapCfg.Encoding = "console"
 	zapLogger, err := zapCfg.Build()
 	if err != nil {
 		return fmt.Errorf("cannot build logger config: %w", err)

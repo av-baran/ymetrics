@@ -35,8 +35,7 @@ type ServerConfig struct {
 func NewServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{
 		StorageConfig: StorageConfig{
-			SingleRequestTimeout: storageDefaultRequestTimeout,
-			BatchRequestTimeout:  storageDefaultRequestTimeout * 10,
+			QueryTimeout: storageDefaultRequestTimeout,
 		},
 		LoggerConfig:    LoggerConfig{},
 		ShutdownTimeout: serverDefaultShutdownTimeout,
@@ -51,7 +50,6 @@ func NewServerConfig() (*ServerConfig, error) {
 		cfg.LoggerConfig.Level = l
 	}
 
-	// в тестах 10-го инкремента в параметрах передаeтся строка "10s", до этого целое число
 	if i, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		d, err := time.ParseDuration(i)
 		if !strings.Contains(err.Error(), "time: missing unit in duration") {

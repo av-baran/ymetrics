@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -16,8 +17,9 @@ import (
 )
 
 type PsqlDB struct {
-	db           *sql.DB
-	queryTimeout time.Duration
+	db                *sql.DB
+	queryTimeout      time.Duration
+	batchQueryTimeout time.Duration
 }
 
 func New() *PsqlDB {
@@ -25,7 +27,8 @@ func New() *PsqlDB {
 }
 
 func (s *PsqlDB) Init(cfg config.StorageConfig) error {
-	s.queryTimeout = cfg.RequestTimeout
+	s.queryTimeout = cfg.QueryTimeout
+	s.batchQueryTimeout = s.queryTimeout * 10
 
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
@@ -155,8 +158,7 @@ func (s *PsqlDB) Shutdown() error {
 }
 
 func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
-	defer cancel()
+	metrics = deduplicateMetrics(metrics)
 
 	queryValues := make([]string, 0, len(metrics))
 	queryArgs := make([]interface{}, 0, len(metrics)*4)
@@ -172,6 +174,10 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 	}
 
 	stmtString := fmt.Sprintf(setStatement, strings.Join(queryValues, ","))
+	log.Printf("STATEMENT: %s", stmtString)
+
+	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
+	defer cancel()
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -184,6 +190,9 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 		return fmt.Errorf("cannot prepare set metric statement: %w", err)
 	}
 	defer stmt.Close()
+
+	log.Print("ARGS: ")
+	log.Println(queryArgs...)
 
 	err = interrors.RetryOnErr(func() error {
 		_, err = tx.StmtContext(ctx, stmt).Exec(queryArgs...)
@@ -234,4 +243,28 @@ func (s *PsqlDB) applyMigrations() error {
 	}
 
 	return nil
+}
+
+func deduplicateMetrics(metrics []metric.Metric) []metric.Metric {
+	var dedupedMetrics []metric.Metric
+
+	metricsMap := make(map[string]metric.Metric, 0)
+	for _, m := range metrics {
+		var resultDelta, mDelta int64
+		if m.Delta != nil {
+			mDelta = *m.Delta
+		}
+		if metricsMap[m.ID].Delta != nil {
+			resultDelta = mDelta + *metricsMap[m.ID].Delta
+			m.Delta = &resultDelta
+		}
+
+		metricsMap[m.ID] = m
+	}
+
+	for _, m := range metricsMap {
+		dedupedMetrics = append(dedupedMetrics, m)
+	}
+
+	return dedupedMetrics
 }
