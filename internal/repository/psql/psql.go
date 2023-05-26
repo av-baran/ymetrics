@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -89,7 +88,7 @@ func (s *PsqlDB) GetMetric(id string, mType string) (*metric.Metric, error) {
 	err = row.Scan(&m.ID, &m.MType, &val, &delta)
 	if err != nil {
 		resErr := errors.Join(interrors.ErrMetricNotFound, err)
-		return nil, resErr
+		return nil, fmt.Errorf("cannot get metric: %w", resErr)
 	}
 
 	if val.Valid {
@@ -174,7 +173,6 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 	}
 
 	stmtString := fmt.Sprintf(setStatement, strings.Join(queryValues, ","))
-	log.Printf("STATEMENT: %s", stmtString)
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
 	defer cancel()
@@ -190,9 +188,6 @@ func (s *PsqlDB) SetMetricsBatch(metrics []metric.Metric) error {
 		return fmt.Errorf("cannot prepare set metric statement: %w", err)
 	}
 	defer stmt.Close()
-
-	log.Print("ARGS: ")
-	log.Println(queryArgs...)
 
 	err = interrors.RetryOnErr(func() error {
 		_, err = tx.StmtContext(ctx, stmt).Exec(queryArgs...)
@@ -218,7 +213,7 @@ func (s *PsqlDB) Ping() error {
 	})
 	if err != nil {
 		resError := errors.Join(interrors.ErrPingDB, err)
-		return resError
+		return fmt.Errorf("cannot ping db: %w", resError)
 	}
 
 	return nil

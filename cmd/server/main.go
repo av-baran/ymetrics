@@ -9,8 +9,6 @@ import (
 	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository"
-	"github.com/av-baran/ymetrics/internal/repository/memstor"
-	"github.com/av-baran/ymetrics/internal/repository/psql"
 	"github.com/av-baran/ymetrics/internal/server"
 )
 
@@ -25,15 +23,9 @@ func main() {
 	}
 	defer logger.Sync()
 
-	var repo repository.Storage
-	if cfg.StorageConfig.DatabaseDSN != "" {
-		repo = psql.New()
-		err := repo.Init(cfg.StorageConfig)
-		if err != nil {
-			logger.Fatalf("cannot init storage: %s", err)
-		}
-	} else {
-		repo = memstor.New()
+	repo, err := repository.New(cfg.StorageConfig)
+	if err != nil {
+		logger.Fatalf("cannot create new repository: %s", err)
 	}
 
 	srv := server.New(repo, cfg)

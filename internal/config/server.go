@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -55,7 +54,6 @@ func NewServerConfig() (*ServerConfig, error) {
 		if !strings.Contains(err.Error(), "time: missing unit in duration") {
 			return nil, fmt.Errorf("cannot parse string to interval: %w", err)
 		} else if err != nil {
-			log.Printf(`%s, trying to parse string as integer number of seconds`, err)
 			v, err := strconv.Atoi(i)
 			if err != nil {
 				return nil, fmt.Errorf("cannot parse config from env (STORE_INTERVAL): %w", err)
