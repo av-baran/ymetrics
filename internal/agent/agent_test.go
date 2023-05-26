@@ -18,6 +18,21 @@ var (
 		ServerAddress:  "localhost:8080",
 		PollInterval:   3,
 		ReportInterval: 5,
+		RetryConfig: config.RetryConfig{
+			BackoffLimit:  1,
+			SleepTime:     1,
+			TimeIncrement: 1,
+		},
+	}
+
+	testCfg = config.AgentConfig{
+		PollInterval:   1,
+		ReportInterval: 2,
+		RetryConfig: config.RetryConfig{
+			BackoffLimit:  1,
+			SleepTime:     1,
+			TimeIncrement: 1,
+		},
 	}
 )
 
@@ -105,14 +120,10 @@ func Test_sendMetricOk(t *testing.T) {
 	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
+	tCfg := testCfg
+	tCfg.ServerAddress = fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
+	a := NewAgent(&tCfg)
 
-	testCfg := &config.AgentConfig{
-		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-		PollInterval:   1,
-		ReportInterval: 2,
-	}
-
-	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -148,14 +159,10 @@ func Test_sendMetricErr(t *testing.T) {
 	srv := httpServerMock("/updates/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
+	tCfg := testCfg
+	tCfg.ServerAddress = fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
+	a := NewAgent(&tCfg)
 
-	testCfg := &config.AgentConfig{
-		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-		PollInterval:   1,
-		ReportInterval: 2,
-	}
-
-	a := NewAgent(testCfg)
 	a.collectMetrics()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -169,14 +176,10 @@ func TestRun(t *testing.T) {
 	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
+	tCfg := testCfg
+	tCfg.ServerAddress = fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
 
-	testCfg := &config.AgentConfig{
-		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-		PollInterval:   1,
-		ReportInterval: 2,
-	}
-
-	okAgent := NewAgent(testCfg)
+	okAgent := NewAgent(&tCfg)
 	go okAgent.Run()
 }
 
@@ -184,14 +187,10 @@ func Test_dumpOk(t *testing.T) {
 	srv := httpServerMock("/updates/", http.StatusOK, "Ok")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
+	tCfg := testCfg
+	tCfg.ServerAddress = fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
 
-	testCfg := &config.AgentConfig{
-		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-		PollInterval:   1,
-		ReportInterval: 2,
-	}
-
-	a := NewAgent(testCfg)
+	a := NewAgent(&tCfg)
 	a.collectMetrics()
 	err := a.batchDump()
 	assert.NoError(t, err)
@@ -201,14 +200,11 @@ func Test_dumpErr(t *testing.T) {
 	srv := httpServerMock("/updates/", http.StatusInternalServerError, interrors.ErrStorageInternalError.Error()+"\n")
 	defer srv.Close()
 	u, _ := url.Parse(srv.URL)
+	tCfg := testCfg
+	tCfg.ServerAddress = fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
 
-	testCfg := &config.AgentConfig{
-		ServerAddress:  fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-		PollInterval:   1,
-		ReportInterval: 2,
-	}
+	a := NewAgent(&tCfg)
 
-	a := NewAgent(testCfg)
 	a.collectMetrics()
 	err := a.batchDump()
 	assert.Error(t, err)

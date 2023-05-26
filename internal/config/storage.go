@@ -5,4 +5,5 @@ import "time"
 type StorageConfig struct {
 	DatabaseDSN  string
 	QueryTimeout time.Duration
+	RetryConfig  *RetryConfig
 }

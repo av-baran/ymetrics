@@ -3,22 +3,21 @@ package interrors
 import (
 	"time"
 
+	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/logger"
 )
 
-func RetryOnErr(f func() error) error {
+func RetryOnErr(cfg config.RetryConfig, f func() error) error {
 	var resErr error
-	backoffLimit := 3
-	sleepTime := 1 * time.Second
-	timeInc := 2 * time.Second
 
-	for try := 0; try < backoffLimit; try++ {
+	sleepTime := cfg.SleepTime
+	for try := 0; try < cfg.BackoffLimit; try++ {
 		if resErr = f(); resErr == nil {
 			return resErr
 		}
-		logger.Errorf("got retryable error: %s, attempt: %s/%s", resErr, try, backoffLimit)
+		logger.Errorf("got retryable error: %s, attempt: %s/%s", resErr, try, cfg.BackoffLimit)
 		time.Sleep(sleepTime)
-		sleepTime += timeInc
+		sleepTime += cfg.TimeIncrement
 	}
 	return resErr
 }

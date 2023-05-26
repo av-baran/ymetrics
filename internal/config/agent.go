@@ -24,14 +24,20 @@ type AgentConfig struct {
 	PollInterval   uint
 	ReportInterval uint
 	RequestTimeout uint
+
+	RetryConfig RetryConfig
 }
 
 func NewAgentConfig() (*AgentConfig, error) {
 	cfg := &AgentConfig{
 		LoggerConfig: LoggerConfig{},
+		RetryConfig: RetryConfig{
+			BackoffLimit:  retryDefaultBackoffLimit,
+			SleepTime:     retryDefaultSleepTime,
+			TimeIncrement: retryDefaultTimeIncrement,
+		},
+		RequestTimeout: agentDefaultRequestTimeout,
 	}
-
-	cfg.RequestTimeout = agentDefaultRequestTimeout
 
 	parseAgentFlags(cfg)
 

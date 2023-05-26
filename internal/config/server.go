@@ -39,7 +39,13 @@ type ServerConfig struct {
 func NewServerConfig() (*ServerConfig, error) {
 	cfg := &ServerConfig{
 		StorageConfig: StorageConfig{
+			DatabaseDSN:  "",
 			QueryTimeout: storageDefaultRequestTimeout,
+			RetryConfig: &RetryConfig{
+				BackoffLimit:  retryDefaultBackoffLimit,
+				SleepTime:     retryDefaultSleepTime,
+				TimeIncrement: retryDefaultTimeIncrement,
+			},
 		},
 		LoggerConfig:    LoggerConfig{},
 		HandlerTimeout:  serverDefaultHandlerTimeout,

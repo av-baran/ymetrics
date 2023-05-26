@@ -39,7 +39,7 @@ func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {
 	}
 
 	var resp *resty.Response
-	err := interrors.RetryOnErr(func() error {
+	err := interrors.RetryOnErr(a.cfg.RetryConfig, func() error {
 		var restyErr error
 		resp, restyErr = a.client.R().
 			SetHeader("Content-Type", "application/json").

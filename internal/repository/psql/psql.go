@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -16,9 +15,8 @@ import (
 )
 
 type PsqlDB struct {
-	db                *sql.DB
-	queryTimeout      time.Duration
-	batchQueryTimeout time.Duration
+	db  *sql.DB
+	cfg *config.StorageConfig
 }
 
 func New() *PsqlDB {
@@ -26,10 +24,9 @@ func New() *PsqlDB {
 }
 
 func (s *PsqlDB) Init(cfg config.StorageConfig) error {
-	s.queryTimeout = cfg.QueryTimeout
-	s.batchQueryTimeout = s.queryTimeout * 10
+	s.cfg = &cfg
 
-	initCtx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
+	initCtx, cancel := context.WithTimeout(context.Background(), s.cfg.QueryTimeout)
 	defer cancel()
 
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
@@ -50,7 +47,7 @@ func (s *PsqlDB) Init(cfg config.StorageConfig) error {
 }
 
 func (s *PsqlDB) SetMetric(ctx context.Context, m metric.Metric) error {
-	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
 	stmtString := fmt.Sprintf(setStatement, "($1, $2, $3, $4)")
@@ -61,7 +58,7 @@ func (s *PsqlDB) SetMetric(ctx context.Context, m metric.Metric) error {
 	}
 	defer stmt.Close()
 
-	err = interrors.RetryOnErr(func() error {
+	err = interrors.RetryOnErr(*s.cfg.RetryConfig, func() error {
 		_, err = stmt.ExecContext(queryCtx, m.ID, m.MType, m.Value, m.Delta)
 		return err
 	})
@@ -73,7 +70,7 @@ func (s *PsqlDB) SetMetric(ctx context.Context, m metric.Metric) error {
 }
 
 func (s *PsqlDB) GetMetric(ctx context.Context, id string, mType string) (*metric.Metric, error) {
-	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
 	m := &metric.Metric{}
@@ -105,7 +102,7 @@ func (s *PsqlDB) GetMetric(ctx context.Context, id string, mType string) (*metri
 }
 
 func (s *PsqlDB) GetAllMetrics(ctx context.Context) ([]metric.Metric, error) {
-	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
 	res := make([]metric.Metric, 0)
@@ -177,7 +174,7 @@ func (s *PsqlDB) SetMetricsBatch(ctx context.Context, metrics []metric.Metric) e
 
 	stmtString := fmt.Sprintf(setStatement, strings.Join(queryValues, ","))
 
-	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
 	tx, err := s.db.BeginTx(queryCtx, nil)
@@ -192,7 +189,7 @@ func (s *PsqlDB) SetMetricsBatch(ctx context.Context, metrics []metric.Metric) e
 	}
 	defer stmt.Close()
 
-	err = interrors.RetryOnErr(func() error {
+	err = interrors.RetryOnErr(*s.cfg.RetryConfig, func() error {
 		_, err = tx.StmtContext(queryCtx, stmt).Exec(queryArgs...)
 		return err
 	})
@@ -208,10 +205,10 @@ func (s *PsqlDB) SetMetricsBatch(ctx context.Context, metrics []metric.Metric) e
 }
 
 func (s *PsqlDB) Ping(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	pingCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
-	err := interrors.RetryOnErr(func() error {
+	err := interrors.RetryOnErr(*s.cfg.RetryConfig, func() error {
 		return s.db.PingContext(pingCtx)
 	})
 	if err != nil {
@@ -223,7 +220,7 @@ func (s *PsqlDB) Ping(ctx context.Context) error {
 }
 
 func (s *PsqlDB) applyMigrations(ctx context.Context) error {
-	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.cfg.QueryTimeout)
 	defer cancel()
 
 	stmt, err := s.db.PrepareContext(queryCtx, createTableStatement)
@@ -232,7 +229,7 @@ func (s *PsqlDB) applyMigrations(ctx context.Context) error {
 	}
 	defer stmt.Close()
 
-	err = interrors.RetryOnErr(func() error {
+	err = interrors.RetryOnErr(*s.cfg.RetryConfig, func() error {
 		_, err = stmt.ExecContext(queryCtx)
 		return err
 	})
