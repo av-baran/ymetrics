@@ -223,17 +223,17 @@ func (s *PsqlDB) Ping(ctx context.Context) error {
 }
 
 func (s *PsqlDB) applyMigrations(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.queryTimeout)
+	queryCtx, cancel := context.WithTimeout(ctx, s.queryTimeout)
 	defer cancel()
 
-	stmt, err := s.db.PrepareContext(ctx, createTableStatement)
+	stmt, err := s.db.PrepareContext(queryCtx, createTableStatement)
 	if err != nil {
 		return fmt.Errorf("cannot prepare create table statements: %w", err)
 	}
 	defer stmt.Close()
 
 	err = interrors.RetryOnErr(func() error {
-		_, err = stmt.ExecContext(ctx)
+		_, err = stmt.ExecContext(queryCtx)
 		return err
 	})
 	if err != nil {
