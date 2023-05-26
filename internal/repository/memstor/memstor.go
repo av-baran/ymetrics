@@ -1,6 +1,7 @@
 package memstor
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -21,7 +22,7 @@ func New() *MemStorage {
 	}
 }
 
-func (s *MemStorage) SetMetric(m metric.Metric) error {
+func (s *MemStorage) SetMetric(ctx context.Context, m metric.Metric) error {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 
@@ -43,7 +44,7 @@ func (s *MemStorage) SetMetric(m metric.Metric) error {
 	return nil
 }
 
-func (s *MemStorage) GetMetric(id string, mType string) (*metric.Metric, error) {
+func (s *MemStorage) GetMetric(ctx context.Context, id string, mType string) (*metric.Metric, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 
@@ -61,7 +62,7 @@ func (s *MemStorage) GetMetric(id string, mType string) (*metric.Metric, error) 
 	return &m, nil
 }
 
-func (s *MemStorage) GetAllMetrics() ([]metric.Metric, error) {
+func (s *MemStorage) GetAllMetrics(ctx context.Context) ([]metric.Metric, error) {
 	memStorageSync.Lock()
 	defer memStorageSync.Unlock()
 	res := make([]metric.Metric, 0)
@@ -73,9 +74,9 @@ func (s *MemStorage) GetAllMetrics() ([]metric.Metric, error) {
 	return res, nil
 }
 
-func (s *MemStorage) SetMetricsBatch(metrics []metric.Metric) error {
+func (s *MemStorage) SetMetricsBatch(ctx context.Context, metrics []metric.Metric) error {
 	for _, m := range metrics {
-		if err := s.SetMetric(m); err != nil {
+		if err := s.SetMetric(ctx, m); err != nil {
 			return fmt.Errorf("cannot update metrics with batch: %w", err)
 		}
 	}
@@ -90,6 +91,6 @@ func (s *MemStorage) Shutdown() error {
 	return nil
 }
 
-func (s *MemStorage) Ping() error {
+func (s *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }

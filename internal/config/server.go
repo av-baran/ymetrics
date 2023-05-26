@@ -10,14 +10,17 @@ import (
 )
 
 const (
-	serverDefaultServerAddress   = "localhost:8080"
-	serverDefaultLogLevel        = "debug"
-	serverDefaultStoreInterval   = 300
-	serverDefaultStoragePath     = "/tmp/metrics-db.json"
-	serverDefaultRestore         = true
+	serverDefaultServerAddress = "localhost:8080"
+	serverDefaultLogLevel      = "debug"
+	serverDefaultStoreInterval = 300
+	serverDefaultStoragePath   = "/tmp/metrics-db.json"
+
+	serverDefaultRestore = true
+
+	serverDefaultHandlerTimeout  = time.Second * 15
 	serverDefaultShutdownTimeout = time.Second * 10
 
-	storageDefaultRequestTimeout = time.Second * 10
+	storageDefaultRequestTimeout = time.Second * 1
 )
 
 type ServerConfig struct {
@@ -28,7 +31,9 @@ type ServerConfig struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
+
 	ShutdownTimeout time.Duration
+	HandlerTimeout  time.Duration
 }
 
 func NewServerConfig() (*ServerConfig, error) {
@@ -37,6 +42,7 @@ func NewServerConfig() (*ServerConfig, error) {
 			QueryTimeout: storageDefaultRequestTimeout,
 		},
 		LoggerConfig:    LoggerConfig{},
+		HandlerTimeout:  serverDefaultHandlerTimeout,
 		ShutdownTimeout: serverDefaultShutdownTimeout,
 	}
 

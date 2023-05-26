@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -10,6 +11,9 @@ import (
 )
 
 func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.HandlerTimeout)
+	defer cancel()
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	m := &metric.Metric{
@@ -35,5 +39,5 @@ func (s *Server) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 		sendError(w, "cannot handle update request", interrors.ErrInvalidMetricType)
 		return
 	}
-	s.Storage.SetMetric(*m)
+	s.Storage.SetMetric(ctx, *m)
 }

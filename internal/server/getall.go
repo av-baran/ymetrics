@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"text/template"
@@ -9,9 +10,12 @@ import (
 )
 
 func (s *Server) GetAllMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.HandlerTimeout)
+	defer cancel()
+
 	w.Header().Set("Content-Type", "text/html")
 
-	metrics, err := s.Storage.GetAllMetrics()
+	metrics, err := s.Storage.GetAllMetrics(ctx)
 	if err != nil {
 		sendError(w, "cannot get all metrics", err)
 		return

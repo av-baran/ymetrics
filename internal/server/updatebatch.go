@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,6 +10,9 @@ import (
 )
 
 func (s *Server) UpdateBatchJSONHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.HandlerTimeout)
+	defer cancel()
+
 	readBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		sendError(w, "cannot read request body", err)
@@ -23,7 +27,7 @@ func (s *Server) UpdateBatchJSONHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := s.Storage.SetMetricsBatch(metrics); err != nil {
+	if err := s.Storage.SetMetricsBatch(ctx, metrics); err != nil {
 		sendError(w, "cannot set metrics batch", err)
 		return
 	}

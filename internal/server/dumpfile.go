@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,6 +17,9 @@ import (
 var dumpFileSync = sync.Mutex{}
 
 func (s *Server) restore() error {
+	restoreCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	dumpFileSync.Lock()
 	defer dumpFileSync.Unlock()
 
@@ -35,7 +39,7 @@ func (s *Server) restore() error {
 	}
 
 	for _, v := range metrics {
-		if err := s.Storage.SetMetric(v); err != nil {
+		if err := s.Storage.SetMetric(restoreCtx, v); err != nil {
 			return fmt.Errorf("cannot set metric from backup: %w", err)
 		}
 	}
@@ -43,6 +47,9 @@ func (s *Server) restore() error {
 }
 
 func (s *Server) dumpfile() error {
+	dumpCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	dumpFileSync.Lock()
 	defer dumpFileSync.Unlock()
 
@@ -57,7 +64,7 @@ func (s *Server) dumpfile() error {
 
 	encoder := json.NewEncoder(buf)
 
-	metrics, err := s.Storage.GetAllMetrics()
+	metrics, err := s.Storage.GetAllMetrics(dumpCtx)
 	if err != nil {
 		return fmt.Errorf("cannot get all metrics: %w", err)
 	}
@@ -85,6 +92,7 @@ func (s *Server) syncfile() {
 		}
 	}
 }
+
 func (s *Server) dumpFileMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)

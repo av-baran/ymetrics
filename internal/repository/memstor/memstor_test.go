@@ -1,6 +1,7 @@
 package memstor
 
 import (
+	"context"
 	"testing"
 
 	"github.com/av-baran/ymetrics/internal/metric"
@@ -130,7 +131,7 @@ func TestMemStorage(t *testing.T) {
 	s := New()
 	for _, tt := range tSetMetric {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.SetMetric(tt.metric)
+			err := s.SetMetric(context.Background(), tt.metric)
 			if !tt.wantErr {
 				assert.NoError(t, err)
 			} else {
@@ -141,7 +142,7 @@ func TestMemStorage(t *testing.T) {
 
 	for _, tt := range tGetMetric {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := s.GetMetric(tt.metric.ID, tt.metric.MType)
+			res, err := s.GetMetric(context.Background(), tt.metric.ID, tt.metric.MType)
 			if !tt.wantErr {
 				assert.NoError(t, err)
 				assert.Equal(t, res.Delta, tt.wantDelta)
@@ -152,7 +153,7 @@ func TestMemStorage(t *testing.T) {
 		})
 	}
 
-	gotMetrics, err := s.GetAllMetrics()
+	gotMetrics, err := s.GetAllMetrics(context.Background())
 	assert.NoError(t, err)
 	assert.ObjectsAreEqual(tAllMetric, gotMetrics)
 }

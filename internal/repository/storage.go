@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"context"
+
 	"github.com/av-baran/ymetrics/internal/config"
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
@@ -10,13 +12,13 @@ import (
 
 type Storage interface {
 	Init(config.StorageConfig) error
-	Ping() error
+	Ping(context.Context) error
 	Shutdown() error
 
-	SetMetric(metric.Metric) error
-	GetMetric(id string, mType string) (*metric.Metric, error)
-	GetAllMetrics() ([]metric.Metric, error)
-	SetMetricsBatch(m []metric.Metric) error
+	SetMetric(context.Context, metric.Metric) error
+	GetMetric(ctx context.Context, id string, mType string) (*metric.Metric, error)
+	GetAllMetrics(context.Context) ([]metric.Metric, error)
+	SetMetricsBatch(context.Context, []metric.Metric) error
 }
 
 func New(cfg config.StorageConfig) (Storage, error) {

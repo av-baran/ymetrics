@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,6 +11,9 @@ import (
 )
 
 func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.HandlerTimeout)
+	defer cancel()
+
 	w.Header().Set("Content-Type", "application/json")
 
 	readBody, err := io.ReadAll(r.Body)
@@ -25,12 +29,12 @@ func (s *Server) UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := s.Storage.SetMetric(*m); err != nil {
+	if err := s.Storage.SetMetric(ctx, *m); err != nil {
 		sendError(w, "cannot set metric", err)
 		return
 	}
 
-	resM, err := s.Storage.GetMetric(m.ID, m.MType)
+	resM, err := s.Storage.GetMetric(ctx, m.ID, m.MType)
 	if err != nil {
 		sendError(w, "cannot get metric", err)
 		return

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,11 +12,14 @@ import (
 )
 
 func (s *Server) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.HandlerTimeout)
+	defer cancel()
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	metricID := chi.URLParam(r, "name")
 	metricType := chi.URLParam(r, "type")
-	m, err := s.Storage.GetMetric(metricID, metricType)
+	m, err := s.Storage.GetMetric(ctx, metricID, metricType)
 	if err != nil {
 		sendError(w, "cannot get metric", err)
 		return
