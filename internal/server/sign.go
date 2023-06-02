@@ -22,7 +22,7 @@ type SignResponseWriter struct {
 func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := s.cfg.SignSecretKey
-		if key == "" {
+		if key == "" || !isSignHeaderPresent(r) {
 			logger.Infof("key is empty keep running without sign check")
 			h.ServeHTTP(w, r)
 			return
@@ -56,7 +56,7 @@ func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 func (s *Server) addSignMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := s.cfg.SignSecretKey
-		if key == "" {
+		if key == "" || !isSignHeaderPresent(r) {
 			logger.Infof("key is empty keep running without adding sign")
 			h.ServeHTTP(w, r)
 			return
@@ -88,4 +88,10 @@ func signBody(key string, body []byte) []byte {
 	result := h.Sum(nil)
 
 	return result
+}
+
+func isSignHeaderPresent(r *http.Request) bool {
+	signHeaderName := http.CanonicalHeaderKey("HashSHA256")
+	_, signOk := r.Header[signHeaderName]
+	return signOk
 }
