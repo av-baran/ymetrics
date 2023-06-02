@@ -10,4 +10,5 @@ var (
 	ErrMetricNotFound              = errors.New("metric not found")
 	ErrStorageInternalError        = errors.New("metric storage error")
 	ErrPingDB                      = errors.New("DB connection test failed")
+	ErrInvalidSign                 = errors.New("sign is invalid")
 )

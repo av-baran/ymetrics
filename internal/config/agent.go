@@ -25,7 +25,8 @@ type AgentConfig struct {
 	ReportInterval uint
 	RequestTimeout uint
 
-	RetryConfig RetryConfig
+	SignSecretKey string
+	RetryConfig   RetryConfig
 }
 
 func NewAgentConfig() (*AgentConfig, error) {
@@ -60,6 +61,11 @@ func NewAgentConfig() (*AgentConfig, error) {
 		}
 		cfg.PollInterval = uint(r)
 	}
+
+	if k, ok := os.LookupEnv("KEY"); ok {
+		cfg.SignSecretKey = k
+	}
+
 	return cfg, nil
 }
 
@@ -68,6 +74,8 @@ func parseAgentFlags(cfg *AgentConfig) {
 	flag.UintVar(&cfg.ReportInterval, "r", agentDefautlReportInterval, "report interval in seconds")
 	flag.UintVar(&cfg.PollInterval, "p", agentDefaultPollInterval, "poll interval in seconds")
 	flag.StringVar(&cfg.LoggerConfig.Level, "l", agentDefaultLogLevel, "log level")
+
+	flag.StringVar(&cfg.SignSecretKey, "k", "", "enable data signing")
 
 	flag.Parse()
 }
