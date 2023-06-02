@@ -5,7 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -28,12 +28,12 @@ func (s *Server) checkSignMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			sendError(w, "cannot read request body", err)
 			return
 		}
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		gotHash := r.Header.Get("HashSHA256")
 		decodedHash, err := hex.DecodeString(gotHash)

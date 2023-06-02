@@ -34,10 +34,10 @@ func (s *Server) registerRoutes() {
 	s.Router.Route("/", func(r chi.Router) {
 		r.Use(
 			gzMiddleware,
-			s.checkSignMiddleware,
+			// s.checkSignMiddleware,
 			logger.RequestLogMiddlware,
 			logger.ResponseLogMiddleware,
-			s.addSignMiddleware,
+			// s.addSignMiddleware,
 		)
 
 		r.Get("/", s.GetAllMetricsHandler)
