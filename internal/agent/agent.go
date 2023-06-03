@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/config"
-	"github.com/av-baran/ymetrics/internal/logger"
+	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -16,7 +16,7 @@ type Agent struct {
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-var done = make(chan bool)
+var doneCh = make(chan struct{})
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
 	a := &Agent{cfg, 0, resty.New()}
@@ -25,26 +25,31 @@ func NewAgent(cfg *config.AgentConfig) *Agent {
 }
 
 func (a *Agent) Run() {
-	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
-	defer pollTicker.Stop()
-	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
-	defer reportTicker.Stop()
+	// reportTicker := time.NewTicker(a.cfg.GetReportInterval())
+	// defer reportTicker.Stop()
+	//
+	// running := true
+	// for running {
+	// 	select {
+	// 	case <-pollTicker.C:
+	// 		a.collectMetrics()
+	// 	case <-reportTicker.C:
+	// 		if err := a.batchDump(); err != nil {
+	// 			logger.Errorf("cannot dump metrics to server: %s", err)
+	// 		}
+	// 	case <-done:
+	// 		running = false
+	// 	}
+	// }
+	metricsCh := make(chan metric.Metric)
+	defer close(metricsCh)
 
-	running := true
-	for running {
-		select {
-		case <-pollTicker.C:
-			a.collectMetrics()
-		case <-reportTicker.C:
-			if err := a.batchDump(); err != nil {
-				logger.Errorf("cannot dump metrics to server: %s", err)
-			}
-		case <-done:
-			running = false
-		}
-	}
+	go a.collectMemStats(doneCh, metricsCh)
+	go a.collectSysStats(doneCh, metricsCh)
+	go a.batchDump(doneCh, metricsCh)
+
 }
 
 func (a *Agent) Shutdown() {
-	done <- true
+	doneCh <- struct{}{}
 }

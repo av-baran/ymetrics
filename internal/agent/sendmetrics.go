@@ -9,19 +9,41 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-resty/resty/v2"
 )
 
-func (a *Agent) batchDump() error {
+func (a *Agent) batchDump(doneCh chan struct{}, metricsCh chan metric.Metric) error {
 	defer func() { a.pollCount = 0 }()
 
-	if err := a.sendBatchJSON(collectedMetrics); err != nil {
-		return fmt.Errorf("cannot send metrics batch: %w", err)
+	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
+	defer reportTicker.Stop()
+
+	metricsStorage := make(map[string]metric.Metric, 0)
+	collectedMetrics := make([]metric.Metric, 0)
+
+	for {
+		select {
+		case m := <-metricsCh:
+			metricsStorage[m.ID] = m
+		case <-reportTicker.C:
+			for _, v := range metricsStorage {
+				collectedMetrics = append(collectedMetrics, v)
+			}
+
+			if err := a.sendBatchJSON(collectedMetrics); err != nil {
+				return fmt.Errorf("cannot send metrics batch: %w", err)
+			}
+			for _, m := range metricsStorage {
+				metricsCh <- m
+			}
+		case <-doneCh:
+			return nil
+		}
 	}
-	return nil
 }
 
 func (a *Agent) sendBatchJSON(metrics []metric.Metric) error {

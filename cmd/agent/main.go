@@ -23,7 +23,7 @@ func main() {
 	defer logger.Sync()
 
 	a := agent.NewAgent(cfg)
-	go a.Run()
+	a.Run()
 
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
