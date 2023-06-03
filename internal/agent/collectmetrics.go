@@ -59,7 +59,7 @@ func (a *Agent) readSysMetrics() ([]metric.Metric, error) {
 	}
 	for i, v := range cpuUtil {
 		cpuMetric := metric.Metric{
-			ID:    fmt.Sprintf("CPUutilization%s", i),
+			ID:    fmt.Sprintf("CPUutilization%d", i),
 			Value: getFloat64Ptr(v),
 			MType: metric.GaugeType,
 		}
