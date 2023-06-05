@@ -2,6 +2,9 @@ package agent
 
 import (
 	"math/rand"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/config"
@@ -48,6 +51,9 @@ func (a *Agent) Run() {
 	go a.collectSysStats(doneCh, metricsCh)
 	go a.batchDump(doneCh, metricsCh)
 
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
 }
 
 func (a *Agent) Shutdown() {
