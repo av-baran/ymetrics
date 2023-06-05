@@ -10,14 +10,9 @@ import (
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/repository"
 	"github.com/av-baran/ymetrics/internal/server"
-	"github.com/mailru/easyjson"
 )
 
 func main() {
-
-	var x easyjson.Marshaler
-	easyjson.Marshal(x)
-
 	cfg, err := config.NewServerConfig()
 	if err != nil {
 		log.Fatalf("cannot init config: %s", err)

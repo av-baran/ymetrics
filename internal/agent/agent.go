@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -28,9 +27,6 @@ var metricsCh = make(chan []metric.Metric, 3)
 var errorCh = make(chan error, 1)
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
-	encJ := json.Encoder{}
-	_ = encJ
-
 	a := &Agent{cfg, 0, resty.New(), newPollCounter()}
 	a.client.SetTimeout(cfg.GetRequestTimeout())
 	return a

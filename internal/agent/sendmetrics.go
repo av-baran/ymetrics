@@ -36,6 +36,7 @@ func (a *Agent) batchDump(ctx context.Context, wg *sync.WaitGroup) {
 		case <-reportTicker.C:
 			if err := a.sendBatchJSON(metricsStorage); err != nil {
 				logger.Errorf("cannot send metrics batch: %s", err)
+				// не завершаю горутину, потому что в 7 тесте агент видимо должен жить несмотря на ошибки в отправке, пока перезапускается сервер
 				// return
 			}
 			metricsStorage = make([]metric.Metric, 0)
