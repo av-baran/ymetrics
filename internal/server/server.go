@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -19,6 +20,9 @@ type Server struct {
 }
 
 func New(s repository.Storage, cfg *config.ServerConfig) *Server {
+	encJ := json.Encoder{}
+	_ = encJ
+
 	router := chi.NewRouter()
 	server := &Server{Storage: s, Router: router, cfg: cfg}
 	server.registerRoutes()

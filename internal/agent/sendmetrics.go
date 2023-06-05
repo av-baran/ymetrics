@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-resty/resty/v2"
@@ -31,13 +32,13 @@ func (a *Agent) batchDump(ctx context.Context, wg *sync.WaitGroup) {
 		select {
 		case recievedMetrics := <-metricsCh:
 			metricsStorage = append(metricsStorage, recievedMetrics...)
+			a.pollCounter.reset()
 		case <-reportTicker.C:
 			if err := a.sendBatchJSON(metricsStorage); err != nil {
-				errorCh <- fmt.Errorf("cannot send metrics batch: %w", err)
-				return
+				logger.Errorf("cannot send metrics batch: %s", err)
+				// return
 			}
 			metricsStorage = make([]metric.Metric, 0)
-			a.pollCounter.reset()
 		case <-ctx.Done():
 			return
 		}
