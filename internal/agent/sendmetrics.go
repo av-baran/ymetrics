@@ -9,39 +9,45 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/av-baran/ymetrics/pkg/interrors"
 	"github.com/go-resty/resty/v2"
+	"golang.org/x/net/context"
 )
 
-func (a *Agent) batchDump(doneCh chan struct{}, metricsCh chan metric.Metric) error {
-	defer func() { a.pollCount = 0 }()
+func (a *Agent) batchDump(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 
 	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
 	defer reportTicker.Stop()
 
 	metricsStorage := make(map[string]metric.Metric, 0)
-	collectedMetrics := make([]metric.Metric, 0)
+	metricsToSend := make([]metric.Metric, 0)
 
 	for {
 		select {
-		case m := <-metricsCh:
-			metricsStorage[m.ID] = m
+		case recievedMetrics := <-metricsCh:
+			for _, m := range recievedMetrics {
+				metricsStorage[m.ID] = m
+			}
 		case <-reportTicker.C:
 			for _, v := range metricsStorage {
-				collectedMetrics = append(collectedMetrics, v)
+				metricsToSend = append(metricsToSend, v)
 			}
 
-			if err := a.sendBatchJSON(collectedMetrics); err != nil {
-				return fmt.Errorf("cannot send metrics batch: %w", err)
+			if err := a.sendBatchJSON(metricsToSend); err != nil {
+				errorCh <- fmt.Errorf("cannot send metrics batch: %w", err)
+				return
 			}
-			for _, m := range metricsStorage {
-				metricsCh <- m
-			}
-		case <-doneCh:
-			return nil
+			metricsStorage = make(map[string]metric.Metric, 0)
+			metricsToSend = make([]metric.Metric, 0)
+			a.pollCounter.reset()
+		case <-ctx.Done():
+			return
 		}
 	}
 }

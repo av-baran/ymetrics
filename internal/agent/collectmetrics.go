@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/av-baran/ymetrics/internal/logger"
@@ -11,41 +13,42 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 )
 
-// var collectedMetrics = []metric.Metric{}
+func (a *Agent) collectMemStats(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 
-func (a *Agent) collectMemStats(doneCh chan struct{}, metricsCh chan metric.Metric) {
 	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
 	defer pollTicker.Stop()
 
 	for {
 		select {
-		case <-doneCh:
+		case <-ctx.Done():
 			return
 		case <-pollTicker.C:
 			collectedMetrics := a.readMemMetrics()
-			for _, m := range collectedMetrics {
-				metricsCh <- m
+			select {
+			case metricsCh <- collectedMetrics:
+			default:
+				logger.Info("metrics channel is full, cannot send mem stat")
 			}
 		}
 	}
 }
 
-func (a *Agent) collectSysStats(doneCh chan struct{}, metricsCh chan metric.Metric) {
+func (a *Agent) collectSysStats(ctx context.Context, wg *sync.WaitGroup) {
 	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
 	defer pollTicker.Stop()
 
 	for {
 		select {
-		case <-doneCh:
+		case <-ctx.Done():
 			return
 		case <-pollTicker.C:
 			collectedMetrics, err := a.readSysMetrics()
 			if err != nil {
-				logger.Errorf("cannot read system metrics: %s", err)
+				errorCh <- err
 			}
-			for _, m := range collectedMetrics {
-				metricsCh <- m
-			}
+			metricsCh <- collectedMetrics
 		}
 	}
 }
@@ -229,7 +232,7 @@ func (a *Agent) readMemMetrics() []metric.Metric {
 		},
 		{
 			ID:    "PollCount",
-			Delta: getInt64Ptr(a.pollCount),
+			Delta: getInt64Ptr(a.pollCounter.get()),
 			MType: metric.CounterType,
 		},
 		{
