@@ -69,7 +69,10 @@ func (a *Agent) readSysMetrics() ([]metric.Metric, error) {
 		collectedMetrics = append(collectedMetrics, cpuMetric)
 	}
 
-	var vm mem.VirtualMemoryStat
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get mem info: %w", err)
+	}
 
 	sysMemMetrics := []metric.Metric{
 		{
@@ -92,7 +95,7 @@ func (a *Agent) readSysMetrics() ([]metric.Metric, error) {
 func (a *Agent) readMemMetrics() []metric.Metric {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	a.pollCount++
+	a.pollCounter.add()
 
 	collectedMetrics := []metric.Metric{
 		{
