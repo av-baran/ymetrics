@@ -25,26 +25,18 @@ func (a *Agent) batchDump(ctx context.Context, wg *sync.WaitGroup) {
 	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
 	defer reportTicker.Stop()
 
-	metricsStorage := make(map[string]metric.Metric, 0)
-	metricsToSend := make([]metric.Metric, 0)
+	metricsStorage := make([]metric.Metric, 0)
 
 	for {
 		select {
 		case recievedMetrics := <-metricsCh:
-			for _, m := range recievedMetrics {
-				metricsStorage[m.ID] = m
-			}
+			metricsStorage = append(metricsStorage, recievedMetrics...)
 		case <-reportTicker.C:
-			for _, v := range metricsStorage {
-				metricsToSend = append(metricsToSend, v)
-			}
-
-			if err := a.sendBatchJSON(metricsToSend); err != nil {
+			if err := a.sendBatchJSON(metricsStorage); err != nil {
 				errorCh <- fmt.Errorf("cannot send metrics batch: %w", err)
 				return
 			}
-			metricsStorage = make(map[string]metric.Metric, 0)
-			metricsToSend = make([]metric.Metric, 0)
+			metricsStorage = make([]metric.Metric, 0)
 			a.pollCounter.reset()
 		case <-ctx.Done():
 			return
