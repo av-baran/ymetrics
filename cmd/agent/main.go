@@ -2,9 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/av-baran/ymetrics/internal/agent"
 	"github.com/av-baran/ymetrics/internal/config"
@@ -23,11 +20,7 @@ func main() {
 	defer logger.Sync()
 
 	a := agent.NewAgent(cfg)
-	go a.Run()
-
-	exitSignal := make(chan os.Signal, 1)
-	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
-	<-exitSignal
+	a.Run()
 
 	a.Shutdown()
 }

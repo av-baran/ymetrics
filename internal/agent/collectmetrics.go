@@ -1,19 +1,101 @@
 package agent
 
 import (
+	"context"
+	"fmt"
 	"runtime"
+	"sync"
+	"time"
 
 	"github.com/av-baran/ymetrics/internal/metric"
+	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/v3/cpu"
 )
 
-var collectedMetrics = []metric.Metric{}
+func (a *Agent) collectMemStats(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 
-func (a *Agent) collectMetrics() {
+	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pollTicker.C:
+			metricsC <- a.readMemMetrics()
+		}
+	}
+}
+
+func (a *Agent) collectSysStats(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+
+	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pollTicker.C:
+			m, err := a.readSysMetrics()
+			if err != nil {
+				errorC <- fmt.Errorf("cannot read system metrics: %w", err)
+				continue
+			}
+			metricsC <- m
+		}
+	}
+}
+
+func (a *Agent) readSysMetrics() ([]metric.Metric, error) {
+	collectedMetrics := make([]metric.Metric, 0)
+
+	cpuUtil, err := cpu.Percent(0, true)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get cpu utilization: %w", err)
+	}
+	for i, v := range cpuUtil {
+		cpuMetric := metric.Metric{
+			ID:    fmt.Sprintf("CPUutilization%d", i),
+			Value: getFloat64Ptr(v),
+			MType: metric.GaugeType,
+		}
+		collectedMetrics = append(collectedMetrics, cpuMetric)
+	}
+
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get mem info: %w", err)
+	}
+
+	sysMemMetrics := []metric.Metric{
+		{
+			ID:    "TotalMemory",
+			Value: getFloat64Ptr(float64(vm.Total)),
+			MType: metric.GaugeType,
+		},
+		{
+			ID:    "FreeMemory",
+			Value: getFloat64Ptr(float64(vm.Free)),
+			MType: metric.GaugeType,
+		},
+	}
+
+	collectedMetrics = append(collectedMetrics, sysMemMetrics...)
+
+	return collectedMetrics, nil
+}
+
+func (a *Agent) readMemMetrics() []metric.Metric {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	a.pollCount++
+	a.pollCounter.add()
 
-	collectedMetrics = []metric.Metric{
+	collectedMetrics := []metric.Metric{
 		{
 			ID:    "Alloc",
 			Value: getFloat64Ptr(float64(m.Alloc)),
@@ -151,7 +233,7 @@ func (a *Agent) collectMetrics() {
 		},
 		{
 			ID:    "PollCount",
-			Delta: getInt64Ptr(a.pollCount),
+			Delta: getInt64Ptr(a.pollCounter.get()),
 			MType: metric.CounterType,
 		},
 		{
@@ -159,22 +241,9 @@ func (a *Agent) collectMetrics() {
 			Value: getFloat64Ptr(randSrc.Float64()),
 			MType: metric.GaugeType,
 		},
-		{
-			ID:    "TotalMemory",
-			Value: getFloat64Ptr(randSrc.Float64()),
-			MType: metric.GaugeType,
-		},
-		{
-			ID:    "FreeMemory",
-			Value: getFloat64Ptr(randSrc.Float64()),
-			MType: metric.GaugeType,
-		},
-		{
-			ID:    "CPUutilization1",
-			Value: getFloat64Ptr(randSrc.Float64()),
-			MType: metric.GaugeType,
-		},
 	}
+
+	return collectedMetrics
 }
 
 func getFloat64Ptr(v float64) *float64 {

@@ -14,6 +14,7 @@ const (
 	agentDefaultPollInterval   = 3
 	agentDefautlReportInterval = 5
 	agentDefaultRequestTimeout = 1
+	agentDefaultRateLimit      = 10
 	agentDefaultLogLevel       = "info"
 )
 
@@ -25,7 +26,10 @@ type AgentConfig struct {
 	ReportInterval uint
 	RequestTimeout uint
 
-	RetryConfig RetryConfig
+	SignSecretKey string
+	RetryConfig   RetryConfig
+
+	RateLimit int
 }
 
 func NewAgentConfig() (*AgentConfig, error) {
@@ -60,6 +64,19 @@ func NewAgentConfig() (*AgentConfig, error) {
 		}
 		cfg.PollInterval = uint(r)
 	}
+
+	if l, ok := os.LookupEnv("RATE_LIMIT"); ok {
+		r, err := strconv.Atoi(l)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse config from env (RATE_LIMIT): %w", err)
+		}
+		cfg.RateLimit = r
+	}
+
+	if k, ok := os.LookupEnv("KEY"); ok {
+		cfg.SignSecretKey = k
+	}
+
 	return cfg, nil
 }
 
@@ -67,7 +84,10 @@ func parseAgentFlags(cfg *AgentConfig) {
 	flag.StringVar(&cfg.ServerAddress, "a", agentDefaultServerAddress, "server address and port to listen")
 	flag.UintVar(&cfg.ReportInterval, "r", agentDefautlReportInterval, "report interval in seconds")
 	flag.UintVar(&cfg.PollInterval, "p", agentDefaultPollInterval, "poll interval in seconds")
-	flag.StringVar(&cfg.LoggerConfig.Level, "l", agentDefaultLogLevel, "log level")
+	flag.IntVar(&cfg.RateLimit, "l", agentDefaultRateLimit, "poll interval in seconds")
+	flag.StringVar(&cfg.LoggerConfig.Level, "L", agentDefaultLogLevel, "log level")
+
+	flag.StringVar(&cfg.SignSecretKey, "k", "", "enable data signing")
 
 	flag.Parse()
 }

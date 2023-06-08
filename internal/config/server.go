@@ -34,6 +34,8 @@ type ServerConfig struct {
 
 	ShutdownTimeout time.Duration
 	HandlerTimeout  time.Duration
+
+	SignSecretKey string
 }
 
 func NewServerConfig() (*ServerConfig, error) {
@@ -80,6 +82,10 @@ func NewServerConfig() (*ServerConfig, error) {
 		cfg.FileStoragePath = p
 	}
 
+	if k, ok := os.LookupEnv("KEY"); ok {
+		cfg.SignSecretKey = k
+	}
+
 	if l, ok := os.LookupEnv("RESTORE"); ok {
 		switch l {
 		case "true", "True", "TRUE", "1":
@@ -105,6 +111,8 @@ func parseServerFlags(cfg *ServerConfig) {
 	flag.StringVar(&cfg.FileStoragePath, "f", serverDefaultStoragePath, "file storage path")
 	flag.BoolVar(&cfg.Restore, "r", serverDefaultRestore, "restore from file")
 	flag.StringVar(&cfg.StorageConfig.DatabaseDSN, "d", "", "database connection string")
+
+	flag.StringVar(&cfg.SignSecretKey, "k", "", "enable incoming data signing")
 
 	flag.Parse()
 }
