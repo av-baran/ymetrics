@@ -20,11 +20,6 @@ type Server struct {
 
 func New(s repository.Storage, cfg *config.ServerConfig) *Server {
 	router := chi.NewRouter()
-	router.Use(
-		gzMiddleware,
-		logger.RequestLogMiddlware,
-		logger.ResponseLogMiddleware,
-	)
 	server := &Server{Storage: s, Router: router, cfg: cfg}
 	server.registerRoutes()
 	server.httpServer = &http.Server{
@@ -36,20 +31,33 @@ func New(s repository.Storage, cfg *config.ServerConfig) *Server {
 }
 
 func (s *Server) registerRoutes() {
-	s.Router.Get("/", s.GetAllMetricsHandler)
-	s.Router.Get("/ping", s.PingDBHandler)
+	s.Router.Route("/", func(r chi.Router) {
+		r.Use(
+			gzMiddleware,
+			s.checkSignMiddleware,
+			logger.RequestLogMiddlware,
+			logger.ResponseLogMiddleware,
+			s.addSignMiddleware,
+		)
 
-	s.Router.Post("/value/", s.GetMetricJSONHandler)
-	s.Router.Get("/value/{type}/{name}", s.GetMetricHandler)
+		r.Get("/", s.GetAllMetricsHandler)
+		r.Get("/ping", s.PingDBHandler)
 
-	s.Router.Route("/update", func(r chi.Router) {
-		r.Use(s.dumpFileMiddleware)
-		r.Post("/", s.UpdateMetricJSONHandler)
-		r.Post("/{type}/{name}/{value}", s.UpdateMetricHandler)
-	})
-	s.Router.Route("/updates", func(r chi.Router) {
-		r.Use(s.dumpFileMiddleware)
-		r.Post("/", s.UpdateBatchJSONHandler)
+		r.Route("/update", func(r chi.Router) {
+			r.Use(s.dumpFileMiddleware)
+			r.Post("/", s.UpdateMetricJSONHandler)
+			r.Post("/{type}/{name}/{value}", s.UpdateMetricHandler)
+		})
+
+		r.Route("/updates", func(r chi.Router) {
+			r.Use(s.dumpFileMiddleware)
+			r.Post("/", s.UpdateBatchJSONHandler)
+		})
+
+		r.Route("/value", func(r chi.Router) {
+			r.Post("/", s.GetMetricJSONHandler)
+			r.Get("/{type}/{name}", s.GetMetricHandler)
+		})
 	})
 }
 

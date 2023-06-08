@@ -25,7 +25,8 @@ func getErrorCode(e error) (statusCode int) {
 		errors.Is(e, interrors.ErrInvalidMetricValue),
 		errors.Is(e, interrors.ErrMetricExistsWithAnotherType),
 		errors.Is(e, strconv.ErrSyntax),
-		errors.Is(e, strconv.ErrRange):
+		errors.Is(e, strconv.ErrRange),
+		errors.Is(e, interrors.ErrInvalidSign):
 
 		statusCode = http.StatusBadRequest
 
