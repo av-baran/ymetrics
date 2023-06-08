@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
@@ -20,29 +19,23 @@ import (
 )
 
 func (a *Agent) batchDump(ctx context.Context, wg *sync.WaitGroup) {
-	wg.Add(1)
-	defer wg.Done()
+	wg.Add(a.cfg.RateLimit)
 
-	reportTicker := time.NewTicker(a.cfg.GetReportInterval())
-	defer reportTicker.Stop()
-
-	metricsStorage := make([]metric.Metric, 0)
-
-	for {
-		select {
-		case recievedMetrics := <-metricsCh:
-			metricsStorage = append(metricsStorage, recievedMetrics...)
-			a.pollCounter.reset()
-		case <-reportTicker.C:
-			if err := a.sendBatchJSON(metricsStorage); err != nil {
-				logger.Errorf("cannot send metrics batch: %s", err)
-				// не завершаю горутину, потому что в 7 тесте агент видимо должен жить несмотря на ошибки в отправке, пока перезапускается сервер
-				// return
+	for i := 0; i < a.cfg.RateLimit; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case m := <-metricsC:
+					if err := a.sendBatchJSON(m); err != nil {
+						logger.Errorf("cannot send metrics batch: %s", err)
+					}
+					a.pollCounter.reset()
+				case <-ctx.Done():
+					return
+				}
 			}
-			metricsStorage = make([]metric.Metric, 0)
-		case <-ctx.Done():
-			return
-		}
+		}()
 	}
 }
 

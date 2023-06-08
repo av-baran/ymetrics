@@ -89,7 +89,7 @@ func Fatal(args ...any) {
 	logger.Fatal(args...)
 }
 func Error(args ...any) {
-	logger.Info(args...)
+	logger.Error(args...)
 }
 func Warn(args ...any) {
 	logger.Warn(args...)
@@ -105,7 +105,7 @@ func Fatalf(format string, opts ...any) {
 	logger.Fatalf(format, opts...)
 }
 func Errorf(format string, opts ...any) {
-	logger.Infof(format, opts...)
+	logger.Errorf(format, opts...)
 }
 func Warnf(format string, opts ...any) {
 	logger.Warnf(format, opts...)

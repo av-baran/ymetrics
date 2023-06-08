@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/av-baran/ymetrics/internal/logger"
 	"github.com/av-baran/ymetrics/internal/metric"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -25,17 +24,15 @@ func (a *Agent) collectMemStats(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ctx.Done():
 			return
 		case <-pollTicker.C:
-			collectedMetrics := a.readMemMetrics()
-			select {
-			case metricsCh <- collectedMetrics:
-			default:
-				logger.Info("metrics channel is full, cannot send mem stat")
-			}
+			metricsC <- a.readMemMetrics()
 		}
 	}
 }
 
 func (a *Agent) collectSysStats(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+
 	pollTicker := time.NewTicker(a.cfg.GetPollInterval())
 	defer pollTicker.Stop()
 
@@ -44,11 +41,12 @@ func (a *Agent) collectSysStats(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ctx.Done():
 			return
 		case <-pollTicker.C:
-			collectedMetrics, err := a.readSysMetrics()
+			m, err := a.readSysMetrics()
 			if err != nil {
-				errorCh <- err
+				errorC <- fmt.Errorf("cannot read system metrics: %w", err)
+				continue
 			}
-			metricsCh <- collectedMetrics
+			metricsC <- m
 		}
 	}
 }

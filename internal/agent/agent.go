@@ -23,8 +23,8 @@ type Agent struct {
 }
 
 var randSrc = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-var metricsCh = make(chan []metric.Metric, 3)
-var errorCh = make(chan error, 1)
+var metricsC = make(chan []metric.Metric, 1)
+var errorC = make(chan error, 1)
 
 func NewAgent(cfg *config.AgentConfig) *Agent {
 	a := &Agent{cfg, 0, resty.New(), newPollCounter()}
@@ -44,22 +44,21 @@ func (a *Agent) Run() {
 	go a.collectSysStats(ctx, &wg)
 	go a.batchDump(ctx, &wg)
 
-	for {
+	running := true
+	for running {
 		select {
 		case <-exitSignal:
-			cancel()
-			wg.Wait()
-			return
-		case err := <-errorCh:
+			running = false
+		case err := <-errorC:
 			logger.Error("goroutine send error: %s", err)
-			cancel()
-			wg.Wait()
-			return
+			running = false
 		}
 	}
+	cancel()
+	wg.Wait()
 }
 
 func (a *Agent) Shutdown() {
-	close(metricsCh)
-	close(errorCh)
+	close(metricsC)
+	close(errorC)
 }
